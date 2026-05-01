@@ -648,7 +648,7 @@ textarea:focus,
   grid-template-rows: auto minmax(0, 1fr) auto;
   align-self: start;
   background: rgba(255, 255, 255, 0.88);
-  border: 1px solid rgba(216, 213, 202, 0.88);
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 22px 70px rgba(62, 58, 47, 0.18);
   overflow: hidden;
@@ -1178,7 +1178,7 @@ textarea::placeholder {
   display: grid;
   gap: 5px;
   background: var(--surface);
-  border: 1px solid rgba(216, 213, 202, 0.72);
+  border: 1px solid var(--border);
   border-radius: 7px;
 }
 

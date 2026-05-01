@@ -1,6 +1,280 @@
 (() => {
   'use strict';
 
+  // ====================================================================
+  // i18n — minimal client-side translation. Detect from navigator,
+  // override via top-bar toggle, persist in localStorage.
+  // ====================================================================
+  const I18N = {
+    en: {
+      'title': 'Whale Editor · DeepSeek-driven AI document editor',
+      'brand.subtitle': 'DeepSeek-powered · cache-friendly',
+      'server.pill': 'Local workspace',
+      'lang.title': 'Switch language',
+      'key.label': 'API Key',
+      'key.unset': 'Not set',
+      'key.set': 'Set {tail}',
+      'key.help': 'DeepSeek API key (stored only in this browser; never logged in plaintext on the server)',
+      'key.save': 'Save',
+      'key.clear': 'Clear',
+      'key.remember': 'Remember in this browser',
+      'key.hint': 'If unchecked, kept only for this session; if blank, the server\'s default key is used',
+      'tool.edit': 'Edit',
+      'tool.comment': 'Comments',
+      'tool.review': 'Review',
+      'doc.state.waiting': 'Awaiting document',
+      'doc.state.loaded': 'Loaded',
+      'compact.upload': 'Upload',
+      'editor.aria': 'Document editor',
+      'empty.title': 'Drop a document here',
+      'empty.hint': 'Supports .docx / .pptx / .doc / .ppt',
+      'ai.aria': 'AI conversation',
+      'ai.subtitle': 'Document assistant',
+      'ai.live.idle': 'Idle',
+      'ai.live.running': 'Running',
+      'ai.live.done': 'Done',
+      'ai.live.error': 'Failed',
+      'intro.body': "Upload a document and a preview shows on the left. Tell me what to change and I'll apply edits step by step, mirroring visible changes back into the preview.",
+      'progress.label': 'Run progress',
+      'progress.planning': 'Planning',
+      'whale.processing': 'DeepSeek is thinking',
+      'metric.cache': 'Cache hit',
+      'metric.input': 'Input tokens',
+      'metric.output': 'Output tokens',
+      'metric.iter': 'Iterations',
+      'final.download': 'Download modified document',
+      'final.reedit': 'Edit again',
+      'final.restart': 'Start over',
+      'composer.label': 'Instruction',
+      'composer.placeholder': "e.g. Replace every 'AutoPaper' with 'PaperAuto' and change the header to 'Quarterly report 2025Q4'. Or apply the formatting spec attached as a reference.",
+      'dropzone.aria': 'Click or drop a document',
+      'dropzone.title': 'Click or drop DOCX / PPTX / DOC / PPT',
+      'file.remove': 'Remove document',
+      'ref.add': 'References',
+      'ref.title': 'Attach reference materials (PDF / DOC / DOCX / PPT / PPTX / MD / TXT, up to 6)',
+      'run.label': 'Send and run',
+      'run.processing': 'Processing',
+      'progress.scanned': '{n} objects scanned',
+      'progress.startSteps': 'Running {n} steps',
+      'progress.converting': 'Converting {ext} to OOXML via libreoffice…',
+      'progress.runningStep': 'Step {i}/{n}: {title}',
+      'progress.allDone': 'All steps complete',
+      'progress.someFail': 'Some steps failed',
+      'whale.uploading': 'Uploading',
+      'whale.converting': 'Converting format',
+      'whale.scanning': 'Scanning document',
+      'whale.executing': 'Running {n} steps',
+      'whale.stepN': 'Step {i} · {title}',
+      'session.reuseStatus': '({m}:{s} · {n} left)',
+      'alert.unsupported': 'Only .docx / .pptx / .doc / .ppt are supported',
+      'alert.tooBig': 'File exceeds the 50 MB limit',
+      'alert.refUnsupported': 'Unsupported format: {name} (only PDF / DOC / DOCX / PPT / PPTX / MD / TXT)',
+      'alert.refTooBig': 'Reference {name} exceeds 50 MB',
+      'alert.refMax': 'You can attach at most {n} reference files',
+      'confirm.notSk': "This doesn't look like a standard sk- DeepSeek key. Save anyway?",
+      'error.requestFailed': 'Request failed: {msg}',
+      'error.streamFailed': 'Stream read failed: {msg}',
+      'session.reuseSuffix': ' (reusing session)',
+      'doc.loaded': 'Loaded {name}',
+      'doc.modifiedReady': 'Modified document ready',
+      'doc.partial': 'Partially complete',
+      'doc.modifying': 'Editing',
+      'doc.failed': 'Edit failed',
+      'whale.readingSession': 'Reading active session',
+      'live.waitingExec': 'Awaiting run',
+      'live.waitingInput': 'Awaiting input',
+      'live.runStatusUpload': 'Uploading document',
+      'live.runStatusReuse': 'Reusing document',
+      'progress.stepFail': 'Step failed',
+      'progress.failed': 'Failed',
+      'progress.convertingTitle': 'Converting {ext} to OOXML',
+      'meta.cacheHit': '{p}% hit',
+      'step.failed': '  · failed: {msg}',
+      'msg.label.reedit': 'Edit again',
+      'msg.label.user': 'Your instruction',
+      'msg.empty.body': 'Apply references',
+      'ref.removeAria': 'Remove',
+      'patch.replace_paragraph_text': 'Replace paragraph',
+      'patch.replace_text_in_paragraph': 'Find/replace in paragraph',
+      'patch.update_table_cell_text': 'Update table cell',
+      'patch.insert_paragraph_after': 'Insert paragraph',
+      'patch.delete_paragraph': 'Delete paragraph',
+      'patch.apply_paragraph_style': 'Apply paragraph style',
+      'patch.update_header_text': 'Update header',
+      'patch.update_footer_text': 'Update footer',
+      'patch.replace_shape_text': 'Replace shape text',
+      'patch.replace_slide_title': 'Update slide title',
+      'patch.update_speaker_notes': 'Update speaker notes',
+      'patch.insert_slide_from_layout': 'Insert slide',
+      'patch.delete_slide': 'Delete slide',
+      'patch.move_shape': 'Move shape',
+      'patch.resize_shape': 'Resize shape',
+      'patch.apply_text_style': 'Apply text style',
+      'patch.replace_image': 'Replace image',
+      'patch.fit_text_to_shape': 'Fit text to shape',
+    },
+    zh: {
+      'title': 'Whale Editor · DeepSeek 驱动的文档自动编辑',
+      'brand.subtitle': 'DeepSeek 驱动 · 缓存命中优化',
+      'server.pill': '本地工作台',
+      'lang.title': '切换语言',
+      'key.label': 'API Key',
+      'key.unset': '未设置',
+      'key.set': '已设置 {tail}',
+      'key.help': 'DeepSeek API Key（仅本浏览器保存，不会上传服务器明文记录）',
+      'key.save': '保存',
+      'key.clear': '清除',
+      'key.remember': '在本浏览器记住',
+      'key.hint': '未勾选则仅本次会话有效；留空则使用服务器默认 key',
+      'tool.edit': '编辑',
+      'tool.comment': '批注',
+      'tool.review': '审阅',
+      'doc.state.waiting': '等待文档',
+      'doc.state.loaded': '已加载',
+      'compact.upload': '上传',
+      'editor.aria': '文档编辑器',
+      'empty.title': '把文档拖到这里',
+      'empty.hint': '支持 .docx / .pptx / .doc / .ppt',
+      'ai.aria': 'AI 对话框',
+      'ai.subtitle': '文档编辑助手',
+      'ai.live.idle': '空闲',
+      'ai.live.running': '执行中',
+      'ai.live.done': '完成',
+      'ai.live.error': '失败',
+      'intro.body': '上传文档后，左侧会显示文稿预览。你可以直接输入要修改的内容，我会边执行边把可见变更同步到左侧。',
+      'progress.label': '执行进程',
+      'progress.planning': '规划中',
+      'whale.processing': 'DeepSeek 正在处理',
+      'metric.cache': '缓存命中率',
+      'metric.input': '输入 token',
+      'metric.output': '输出 token',
+      'metric.iter': '迭代次数',
+      'final.download': '下载修改后的文档',
+      'final.reedit': '继续修改',
+      'final.restart': '重新开始',
+      'composer.label': '指令',
+      'composer.placeholder': '例如：把所有 AutoPaper 改成 PaperAuto，页眉换成季度报告 2025Q4；或按参考材料里的格式说明重排。',
+      'dropzone.aria': '点击或拖入文档',
+      'dropzone.title': '拖入或点击添加 DOCX / PPTX / DOC / PPT',
+      'file.remove': '移除文档',
+      'ref.add': '参考材料',
+      'ref.title': '添加参考材料 (PDF / DOC / DOCX / PPT / PPTX / MD / TXT，最多 6 份)',
+      'run.label': '发送并执行',
+      'run.processing': '处理中',
+      'progress.scanned': '已扫描 {n} 个对象',
+      'progress.startSteps': '开始执行 {n} 个步骤',
+      'progress.converting': '正在用 libreoffice 把 {ext} 转成 OOXML…',
+      'progress.runningStep': '执行中 ({i}/{n})：{title}',
+      'progress.allDone': '全部步骤已完成',
+      'progress.someFail': '部分步骤失败',
+      'whale.uploading': '上传中',
+      'whale.converting': '转换格式中',
+      'whale.scanning': '扫描文档结构',
+      'whale.executing': '执行 {n} 个步骤',
+      'whale.stepN': '第 {i} 步 · {title}',
+      'session.reuseStatus': '（{m}:{s} · 剩 {n} 次）',
+      'alert.unsupported': '只支持 .docx / .pptx / .doc / .ppt 文件',
+      'alert.tooBig': '文件超过 50MB 上限',
+      'alert.refUnsupported': '不支持的格式：{name}（仅 PDF / DOC / DOCX / PPT / PPTX / MD / TXT）',
+      'alert.refTooBig': '参考材料 {name} 超过 50MB',
+      'alert.refMax': '最多只能添加 {n} 份参考材料',
+      'confirm.notSk': '看起来不是标准 sk- 开头的 DeepSeek key，仍然保存？',
+      'error.requestFailed': '请求失败：{msg}',
+      'error.streamFailed': '流式读取失败：{msg}',
+      'session.reuseSuffix': '（会话内复用）',
+      'doc.loaded': '已载入 {name}',
+      'doc.modifiedReady': '已生成修改稿',
+      'doc.partial': '部分完成',
+      'doc.modifying': '修改中',
+      'doc.failed': '修改失败',
+      'whale.readingSession': '读取当前会话',
+      'live.waitingExec': '等待执行',
+      'live.waitingInput': '等待指令',
+      'live.runStatusUpload': '上传文档',
+      'live.runStatusReuse': '复用当前文档',
+      'progress.stepFail': '步骤失败',
+      'progress.failed': '失败',
+      'progress.convertingTitle': '正在把 {ext} 转成 OOXML',
+      'meta.cacheHit': '{p}% 命中',
+      'step.failed': '  · 失败：{msg}',
+      'msg.label.reedit': '继续修改',
+      'msg.label.user': '用户指令',
+      'msg.empty.body': '按参考材料修改',
+      'ref.removeAria': '移除',
+      'patch.replace_paragraph_text': '替换段落',
+      'patch.replace_text_in_paragraph': '段内查找替换',
+      'patch.update_table_cell_text': '改表格单元格',
+      'patch.insert_paragraph_after': '插入段落',
+      'patch.delete_paragraph': '删除段落',
+      'patch.apply_paragraph_style': '应用段落样式',
+      'patch.update_header_text': '改页眉',
+      'patch.update_footer_text': '改页脚',
+      'patch.replace_shape_text': '替换形状文本',
+      'patch.replace_slide_title': '改幻灯片标题',
+      'patch.update_speaker_notes': '改备注',
+      'patch.insert_slide_from_layout': '新增幻灯片',
+      'patch.delete_slide': '删除幻灯片',
+      'patch.move_shape': '移动形状',
+      'patch.resize_shape': '调整大小',
+      'patch.apply_text_style': '应用文本样式',
+      'patch.replace_image': '替换图片',
+      'patch.fit_text_to_shape': '自适应文本',
+    },
+  };
+
+  const LOCALE_KEY = 'office-agent.locale';
+  let LOCALE = (() => {
+    try {
+      const stored = localStorage.getItem(LOCALE_KEY);
+      if (stored === 'en' || stored === 'zh') return stored;
+    } catch (e) {}
+    return (navigator.language || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+  })();
+
+  function t(key, vars) {
+    const dict = I18N[LOCALE] || I18N.en;
+    let s = dict[key];
+    if (s === undefined) s = (I18N.en[key] !== undefined ? I18N.en[key] : key);
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        s = s.replace(new RegExp('\\{' + k + '\\}', 'g'), String(v));
+      }
+    }
+    return s;
+  }
+
+  function applyI18n() {
+    document.documentElement.lang = LOCALE === 'zh' ? 'zh-CN' : 'en';
+    document.title = t('title');
+    document.querySelectorAll('[data-i18n]').forEach((el) => {
+      el.textContent = t(el.dataset.i18n);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+      el.placeholder = t(el.dataset.i18nPlaceholder);
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+      el.title = t(el.dataset.i18nTitle);
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+      el.setAttribute('aria-label', t(el.dataset.i18nAria));
+    });
+    const langBtn = document.getElementById('lang-toggle');
+    if (langBtn) langBtn.textContent = LOCALE === 'zh' ? 'EN' : '中';
+  }
+
+  function setLocale(loc) {
+    if (loc !== 'en' && loc !== 'zh') return;
+    LOCALE = loc;
+    try { localStorage.setItem(LOCALE_KEY, loc); } catch (e) {}
+    applyI18n();
+  }
+
+  // Run translations as soon as the script executes (script tag is at end of body)
+  applyI18n();
+  document.getElementById('lang-toggle')?.addEventListener('click', () => {
+    setLocale(LOCALE === 'zh' ? 'en' : 'zh');
+  });
+
   // ---------- Element refs ----------
   const $ = (id) => document.getElementById(id);
   const dropzone = $('dropzone');
@@ -110,10 +384,10 @@
   function refreshKeyState() {
     const k = currentKey();
     if (k) {
-      keyState.textContent = '已设置 ' + maskKey(k);
+      keyState.textContent = t('key.set', {tail: maskKey(k)});
       keyState.classList.add('set');
     } else {
-      keyState.textContent = '未设置';
+      keyState.textContent = t('key.unset');
       keyState.classList.remove('set');
     }
   }
@@ -132,7 +406,7 @@
   keySave.addEventListener('click', () => {
     const v = keyInput.value.trim();
     if (v && !v.startsWith('sk-')) {
-      if (!confirm('看起来不是标准 sk- 开头的 DeepSeek key，仍然保存？')) return;
+      if (!confirm(t('confirm.notSk'))) return;
     }
     inMemoryKey = v;
     if (keyRemember.checked) {
@@ -630,7 +904,7 @@
     editorViewState = { kind: 'empty' };
     clearDocumentInfo();
     renderDocumentWorkspace();
-    setDocState('等待文档', false);
+    setDocState(t('doc.state.waiting'), false);
   }
 
   function updateDocumentPageForFile(file) {
@@ -638,7 +912,7 @@
     editorViewState = { kind: 'file', name: file.name, ext };
     clearDocumentInfo();
     renderDocumentWorkspace();
-    setDocState(`已载入 ${file.name}`, true);
+    setDocState(t('doc.loaded', {name: file.name}), true);
     inspectCurrentDocument(true);
   }
 
@@ -646,7 +920,7 @@
     const name = modifiedFilename || activeSession?.filename || selectedFile?.name || 'document';
     editorViewState = { kind: 'result', name, success };
     renderDocumentWorkspace();
-    setDocState(success ? '已生成修改稿' : '部分完成', true);
+    setDocState(t(success ? 'doc.modifiedReady' : 'doc.partial'), true);
     if (refreshFromFile) inspectCurrentDocument(true);
   }
 
@@ -732,7 +1006,7 @@
     intentInput.value = intent;
     updateRunEnabled();
     intentInput.focus();
-    setLiveState('等待执行', 'done');
+    setLiveState(t('live.waitingExec'), 'done');
     scrollChat();
   }
 
@@ -868,11 +1142,11 @@
       return;
     }
     if (!ACCEPTED.test(file.name)) {
-      alert('只支持 .docx / .pptx / .doc / .ppt 文件');
+      alert(t('alert.unsupported'));
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      alert('文件超过 50MB 上限');
+      alert(t('alert.tooBig'));
       return;
     }
     clearSession();
@@ -903,15 +1177,15 @@
   function addReferences(fileList) {
     for (const f of fileList) {
       if (referenceFiles.length >= MAX_REFS) {
-        alert(`最多只能添加 ${MAX_REFS} 份参考材料`);
+        alert(t('alert.refMax', {n: MAX_REFS}));
         break;
       }
       if (!REF_ACCEPTED.test(f.name)) {
-        alert(`不支持的格式：${f.name}`);
+        alert(t('alert.refUnsupported', {name: f.name}));
         continue;
       }
       if (f.size > 50 * 1024 * 1024) {
-        alert(`参考材料 ${f.name} 超过 50MB`);
+        alert(t('alert.refTooBig', {name: f.name}));
         continue;
       }
       const dup = referenceFiles.find((r) => r.name === f.name && r.size === f.size);
@@ -937,7 +1211,7 @@
         <span class="ref-kind"></span>
         <span class="ref-name"></span>
         <span class="ref-size"></span>
-        <button type="button" class="ref-remove" aria-label="移除">x</button>
+        <button type="button" class="ref-remove" aria-label="${t('ref.removeAria')}">x</button>
       `;
       li.querySelector('.ref-kind').textContent = refKind(f.name);
       li.querySelector('.ref-name').textContent = f.name;
@@ -1057,7 +1331,7 @@
     renderRefList();
     updateRunEnabled();
     intentInput.focus();
-    setLiveState('等待指令', 'done');
+    setLiveState(t('live.waitingInput'), 'done');
     scrollChat();
   });
 
@@ -1076,7 +1350,7 @@
     referenceFiles = [];
     renderRefList();
     intentInput.value = '';
-    setLiveState('空闲');
+    setLiveState(t('ai.live.idle'));
     updateRunEnabled();
   });
 
@@ -1121,7 +1395,7 @@
       activeSession.expiresInMs = Math.max(0, activeSession.expiresInMs - 1000);
       const m = Math.floor(activeSession.expiresInMs / 60000);
       const s = Math.floor((activeSession.expiresInMs % 60000) / 1000);
-      reeditStatus.textContent = `(${m}:${String(s).padStart(2, '0')} · 剩 ${activeSession.reuseRemaining} 次)`;
+      reeditStatus.textContent = t('session.reuseStatus', {m, s: String(s).padStart(2, '0'), n: activeSession.reuseRemaining});
       if (activeSession.expiresInMs <= 0) {
         clearSession();
         updateRunEnabled();
@@ -1145,10 +1419,10 @@
     clearProgress();
     btnLabel.hidden = true;
     btnSpinner.hidden = false;
-    setRunStatus(willReuse ? '复用当前文档' : '上传文档', 'running');
-    setDocState('修改中', true);
+    setRunStatus(t(willReuse ? 'live.runStatusReuse' : 'live.runStatusUpload'), 'running');
+    setDocState(t('doc.modifying'), true);
     totalIterations = 0;
-    showWhale(willReuse ? '读取当前会话' : '上传中');
+    showWhale(t(willReuse ? 'whale.readingSession' : 'whale.uploading'));
 
     const fd = new FormData();
     fd.append('intent', intent);
@@ -1176,7 +1450,7 @@
     try {
       resp = await fetch('/api/agent/auto', { method: 'POST', body: fd, headers });
     } catch (err) {
-      showError(`请求失败：${err.message}`);
+      showError(t('error.requestFailed', {msg: err.message}));
       resetRunButton();
       return;
     }
@@ -1188,7 +1462,7 @@
       return;
     }
 
-    setRunStatus('规划中', 'running');
+    setRunStatus(t('progress.planning'), 'running');
 
     const reader = resp.body.getReader();
     const decoder = new TextDecoder('utf-8');
@@ -1223,7 +1497,7 @@
       }
     } catch (err) {
       if (!gotTerminalEvent) {
-        showError(`流式读取失败：${err.message}`);
+        showError(t('error.streamFailed', {msg: err.message}));
       }
     } finally {
       resetRunButton();
@@ -1239,7 +1513,7 @@
   }
 
   function showWhale(caption) {
-    if (whaleCaption) whaleCaption.textContent = caption || 'DeepSeek 正在处理';
+    if (whaleCaption) whaleCaption.textContent = caption || t('whale.processing');
     whaleStage.classList.remove('idle');
     scrollChat();
   }
@@ -1252,22 +1526,22 @@
   function handleEvent(ev) {
     switch (ev.type) {
       case 'converting':
-        setRunStatus(`正在把 ${ev.from.toUpperCase()} 转成 OOXML`, 'running');
-        showWhale('转换格式中');
+        setRunStatus(t('progress.convertingTitle', {ext: ev.from.toUpperCase()}), 'running');
+        showWhale(t('whale.converting'));
         break;
       case 'session':
         activeSession = ev.session;
         startSessionCountdown();
         break;
       case 'manifest_summary':
-        setRunStatus(`已扫描 ${ev.objectCount} 个对象`, 'running');
-        showWhale('扫描文档结构');
+        setRunStatus(t('progress.scanned', {n: ev.objectCount}), 'running');
+        showWhale(t('whale.scanning'));
         if (editorMode === 'edit') renderDocumentWorkspace();
         break;
       case 'plan':
         renderPlan(ev.plan);
-        setRunStatus(`开始执行 ${ev.plan.steps.length} 个步骤`, 'running');
-        showWhale(`执行 ${ev.plan.steps.length} 个步骤`);
+        setRunStatus(t('progress.startSteps', {n: ev.plan.steps.length}), 'running');
+        showWhale(t('whale.executing', {n: ev.plan.steps.length}));
         break;
       case 'step_start':
         markStep(ev.index, 'running');
@@ -1288,7 +1562,7 @@
       case 'step_error':
         markStep(ev.index, 'error');
         appendStepError(ev.index, ev.error);
-        setRunStatus('步骤失败', 'error');
+        setRunStatus(t('progress.stepFail'), 'error');
         break;
       case 'complete':
         finishRun(ev);
@@ -1337,12 +1611,25 @@
       const metaEl = li.querySelector('.step-meta');
       const parts = [];
       if (typeof meta.iters === 'number') parts.push(`${meta.iters} iter`);
-      if (typeof meta.cacheRatio === 'number') parts.push(`${(meta.cacheRatio * 100).toFixed(0)}% 命中`);
+      if (typeof meta.cacheRatio === 'number') parts.push(t('meta.cacheHit', {p: (meta.cacheRatio * 100).toFixed(0)}));
       metaEl.textContent = parts.join(' · ');
     }
   }
 
-  const OP_LABELS = {
+  function opLabel(op) {
+    const key = 'patch.' + op;
+    const dict = I18N[LOCALE] || I18N.en;
+    if (dict[key] !== undefined) return dict[key];
+    if (I18N.en[key] !== undefined) return I18N.en[key];
+    return op;
+  }
+
+  // Legacy alias retained so existing callers keep working — points at i18n
+  const OP_LABELS = new Proxy({}, { get: (_, op) => opLabel(String(op)) });
+
+  // (the inline Chinese map below is kept commented-out for readability;
+  //  authoritative copy lives in the i18n dict at the top of this IIFE)
+  /* legacy:
     replace_paragraph_text: '替换段落',
     replace_text_in_paragraph: '段内查找替换',
     update_table_cell_text: '改表格单元格',
@@ -1361,7 +1648,7 @@
     apply_text_style: '应用文本样式',
     replace_image: '替换图片',
     fit_text_to_shape: '自适应文本',
-  };
+  */
 
   function truncate(s, n) {
     if (typeof s !== 'string') return s;
@@ -1421,16 +1708,16 @@
     if (!li) return;
     const taskEl = li.querySelector('.step-task');
     if (msg && msg !== taskEl.textContent) {
-      taskEl.textContent += `  · 失败：${msg}`;
+      taskEl.textContent += t('step.failed', {msg});
     }
   }
 
   function finishRun(ev) {
     hideWhale();
     if (ev.success) {
-      setRunStatus('全部步骤已完成', 'done');
+      setRunStatus(t('progress.allDone'), 'done');
     } else {
-      setRunStatus('部分步骤失败', 'warn');
+      setRunStatus(t('progress.someFail'), 'warn');
     }
 
     const u = ev.totalUsage || {};
@@ -1480,11 +1767,11 @@
   function showError(msg) {
     errorBox.hidden = false;
     errorBox.textContent = msg;
-    setRunStatus('失败', 'error');
-    setDocState(selectedFile ? '修改失败' : '等待文档', !!selectedFile);
+    setRunStatus(t('progress.failed'), 'error');
+    setDocState(t(selectedFile ? 'doc.failed' : 'doc.state.waiting'), !!selectedFile);
     scrollChat();
   }
 
   resetDocumentPage();
-  setLiveState('空闲');
+  setLiveState(t('ai.live.idle'));
 })();

@@ -55,18 +55,13 @@
         </div>
       </div>
 
-      <div class="editor-stage">
-        <article class="document-page" id="document-page" contenteditable="true" spellcheck="false">
-          <div class="doc-kicker">Office Agent Workspace</div>
-          <h1>把文档拖到右侧 AI 面板开始编辑</h1>
-          <p>
-            这里是网页内的编辑器工作区。右侧 AI 对话会读取上传的 Word 或 PowerPoint 文件，
-            根据你的指令生成修改方案，并在执行时显示每一步进程、缓存命中率和最终下载入口。
-          </p>
-          <p>
-            你也可以先在这里整理想法，再把明确指令输入右侧对话框。
-          </p>
-        </article>
+      <div class="editor-stage" id="editor-stage">
+        <div class="empty-drop" id="empty-drop">
+          <div class="empty-drop-icon">🐋</div>
+          <div class="empty-drop-title">把文档拖到这里</div>
+          <div class="empty-drop-hint">支持 .docx / .pptx / .doc / .ppt</div>
+        </div>
+        <article class="document-page" id="document-page" contenteditable="true" spellcheck="false" hidden></article>
       </div>
 
       <div class="status-strip">
@@ -79,15 +74,15 @@
     <aside class="ai-panel" aria-label="AI 对话框">
       <div class="ai-header">
         <div>
-          <div class="ai-title">Claude</div>
-          <div class="ai-subtitle">文档侧栏助手</div>
+          <div class="ai-title">🐋 Whale Editor</div>
+          <div class="ai-subtitle">文档编辑助手</div>
         </div>
         <div class="ai-live-pill" id="ai-live-pill">空闲</div>
       </div>
 
       <div class="chat-scroll" id="chat-scroll" aria-live="polite">
         <div class="message assistant intro-message">
-          <div class="message-label">Office Agent</div>
+          <div class="message-label">Whale Editor</div>
           <div class="message-body">
             上传文档后，左侧会显示文稿预览。你可以直接输入要修改的内容，我会边执行边把可见变更同步到左侧。
           </div>

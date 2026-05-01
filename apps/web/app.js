@@ -280,7 +280,7 @@
     }
 
     documentPage.innerHTML = `
-      <div class="doc-kicker">Office Agent Workspace</div>
+      <div class="doc-kicker">Whale Editor Workspace</div>
       <h1>未打开文档</h1>
       <p>选择一个 Word 或 PowerPoint 文件后，这里会保留当前工作区状态。</p>
       <p>右侧对话框会显示规划、执行、校验和缓存命中情况。</p>
@@ -850,6 +850,8 @@
   const ACCEPTED = /\.(docx|pptx|doc|ppt)$/i;
 
   function setFile(file) {
+    const emptyDrop = document.getElementById('empty-drop');
+    const docPage = document.getElementById('document-page');
     if (!file) {
       selectedFile = null;
       followUpMode = false;
@@ -860,6 +862,8 @@
       dzEmpty.hidden = false;
       dzFilled.hidden = true;
       resetDocumentPage();
+      if (emptyDrop) emptyDrop.hidden = false;
+      if (docPage) docPage.hidden = true;
       updateRunEnabled();
       return;
     }
@@ -877,6 +881,8 @@
     fileMetaEl.textContent = `${formatSize(file.size)} · ${file.name.split('.').pop().toLowerCase()}`;
     dzEmpty.hidden = true;
     dzFilled.hidden = false;
+    if (emptyDrop) emptyDrop.hidden = true;
+    if (docPage) docPage.hidden = false;
     updateDocumentPageForFile(file);
     updateRunEnabled();
   }
@@ -989,6 +995,30 @@
     const f = e.dataTransfer.files[0];
     if (f) setFile(f);
   });
+
+  // Make the entire left editor-stage a drop target (the new empty-state UI).
+  const editorStage = document.getElementById('editor-stage');
+  if (editorStage) {
+    editorStage.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      editorStage.classList.add('dragging');
+    });
+    editorStage.addEventListener('dragleave', (e) => {
+      // Only clear when leaving the actual stage, not its children
+      if (e.target === editorStage) editorStage.classList.remove('dragging');
+    });
+    editorStage.addEventListener('drop', (e) => {
+      e.preventDefault();
+      editorStage.classList.remove('dragging');
+      const f = e.dataTransfer.files[0];
+      if (f) setFile(f);
+    });
+    editorStage.addEventListener('click', (e) => {
+      // Click on empty area opens file picker (but don't hijack contenteditable)
+      const docPage = document.getElementById('document-page');
+      if (!docPage || docPage.hidden) fileInput.click();
+    });
+  }
 
   fileInput.addEventListener('change', (e) => setFile(e.target.files[0]));
 

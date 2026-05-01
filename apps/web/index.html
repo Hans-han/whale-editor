@@ -4,12 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Whale Editor · DeepSeek 驱动的文档自动编辑</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 16'><path fill='%232f6b4f' d='M22 8c0 3.3-3.3 5.5-7.5 5.5-2 0-3.8-.5-5-1.5L4 14l1-3.5C3.5 9.7 3 8.9 3 8c0-2.5 4-4.5 9-4.5 5 0 10 1.7 10 4.5z'/><circle cx='17' cy='7' r='0.8' fill='%23ffffff'/></svg>">
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
+  <!-- Reusable whale glyph: <use href="#whale-glyph"/> picks up currentColor for theme adaptation -->
+  <svg width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="whale-glyph" viewBox="0 0 24 16">
+        <path fill="currentColor" d="M22 8c0 3.3-3.3 5.5-7.5 5.5-2 0-3.8-.5-5-1.5L4 14l1-3.5C3.5 9.7 3 8.9 3 8c0-2.5 4-4.5 9-4.5 5 0 10 1.7 10 4.5z"/>
+        <circle cx="17" cy="7" r="0.8" fill="var(--surface)"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <header class="topbar">
     <div class="brand" aria-label="Whale Editor">
-      <span class="logo" aria-hidden="true">🐋</span>
+      <svg class="logo" aria-hidden="true" focusable="false"><use href="#whale-glyph"/></svg>
       <span class="name">Whale Editor</span>
       <span class="subtitle">DeepSeek 驱动 · 缓存命中优化</span>
     </div>
@@ -57,7 +68,7 @@
 
       <div class="editor-stage" id="editor-stage">
         <div class="empty-drop" id="empty-drop">
-          <div class="empty-drop-icon">🐋</div>
+          <svg class="empty-drop-icon" aria-hidden="true" focusable="false"><use href="#whale-glyph"/></svg>
           <div class="empty-drop-title">把文档拖到这里</div>
           <div class="empty-drop-hint">支持 .docx / .pptx / .doc / .ppt</div>
         </div>
@@ -74,7 +85,10 @@
     <aside class="ai-panel" aria-label="AI 对话框">
       <div class="ai-header">
         <div>
-          <div class="ai-title">🐋 Whale Editor</div>
+          <div class="ai-title">
+            <svg class="ai-logo" aria-hidden="true" focusable="false"><use href="#whale-glyph"/></svg>
+            Whale Editor
+          </div>
           <div class="ai-subtitle">文档编辑助手</div>
         </div>
         <div class="ai-live-pill" id="ai-live-pill">空闲</div>

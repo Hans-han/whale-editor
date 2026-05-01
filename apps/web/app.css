@@ -117,24 +117,32 @@ button {
   min-width: 0;
 }
 
+/* Unified whale glyph — used in topbar, ai-panel header, and empty-drop hint.
+   Color comes from currentColor so it adapts to light/dark + emphasis. */
 .brand .logo {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  background:
-    linear-gradient(135deg, rgba(47, 107, 79, 0.18), rgba(161, 95, 43, 0.18)),
-    var(--surface);
-  border: 1px solid var(--border-strong);
-  position: relative;
+  width: 26px;
+  height: 17px;
   flex: 0 0 auto;
+  color: var(--accent);
+  display: inline-block;
+  vertical-align: middle;
+}
+.brand .logo use { color: inherit; }
+
+.ai-logo {
+  width: 22px;
+  height: 14px;
+  color: var(--accent);
+  vertical-align: -2px;
+  margin-right: 2px;
 }
 
-.brand .logo::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 3px;
-  background: var(--accent);
+.empty-drop-icon {
+  width: 80px;
+  height: 53px;
+  color: var(--accent);
+  opacity: 0.85;
+  margin-bottom: 4px;
 }
 
 .brand .name {
@@ -410,11 +418,7 @@ textarea:focus,
   pointer-events: none;
   user-select: none;
 }
-.empty-drop-icon {
-  font-size: 56px;
-  filter: opacity(0.85);
-  margin-bottom: 4px;
-}
+/* (empty-drop-icon SVG sizing lives next to the brand .logo block above) */
 .empty-drop-title {
   font-size: 18px;
   font-weight: 500;

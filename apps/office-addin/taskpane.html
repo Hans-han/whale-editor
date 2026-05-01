@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Office Agent</title>
+  <link rel="stylesheet" href="taskpane.css">
+</head>
+<body>
+  <div id="app">
+    <header class="header">
+      <h1>Office Agent</h1>
+      <p class="subtitle">AI-powered document editing with DeepSeek V4</p>
+    </header>
+
+    <main class="main">
+      <section class="input-section">
+        <label for="task-input">What would you like to change?</label>
+        <textarea 
+          id="task-input" 
+          placeholder="e.g., Change the title to 'New Title', Update the second paragraph, Add a summary section..."
+          rows="4"
+        ></textarea>
+      </section>
+
+      <section class="actions">
+        <button id="btn-run" class="btn-primary" disabled>
+          <span class="btn-text">Run Agent</span>
+          <span class="btn-loading" hidden>Processing...</span>
+        </button>
+        <button id="btn-download" class="btn-secondary" hidden>
+          Download Modified Document
+        </button>
+      </section>
+
+      <section class="status-section">
+        <div id="status" class="status"></div>
+      </section>
+
+      <section class="manifest-section" hidden>
+        <h3>Document Manifest</h3>
+        <pre id="manifest-output"></pre>
+      </section>
+
+      <section class="patch-section" hidden>
+        <h3>Patch Plan</h3>
+        <pre id="patch-output"></pre>
+      </section>
+
+      <section class="validation-section" hidden>
+        <h3>Validation Status</h3>
+        <div id="validation-output"></div>
+      </section>
+
+      <section class="metrics-section" hidden>
+        <h3>Usage Metrics</h3>
+        <div id="metrics-output"></div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>Powered by DeepSeek V4</p>
+    </footer>
+  </div>
+
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="taskpane.js"></script>
+</body>
+</html>

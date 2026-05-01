@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Whale Editor · DeepSeek 驱动的文档自动编辑</title>
+  <link rel="stylesheet" href="/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand" aria-label="Whale Editor">
+      <span class="logo" aria-hidden="true">🐋</span>
+      <span class="name">Whale Editor</span>
+      <span class="subtitle">DeepSeek 驱动 · 缓存命中优化</span>
+    </div>
+    <div class="topbar-right">
+      <span class="server-pill">本地工作台</span>
+      <button type="button" id="key-toggle" class="key-toggle" aria-expanded="false">
+        <span class="key-icon" aria-hidden="true"></span>
+        <span class="key-label">API Key</span>
+        <span class="key-state" id="key-state">未设置</span>
+      </button>
+    </div>
+  </header>
+
+  <section class="key-panel" id="key-panel" hidden>
+    <div class="key-panel-inner">
+      <label for="key-input" class="key-help">
+        DeepSeek API Key（仅本浏览器保存，不会上传服务器明文记录）
+      </label>
+      <div class="key-row">
+        <input type="password" id="key-input" placeholder="sk-..." autocomplete="off" spellcheck="false">
+        <button type="button" id="key-save" class="btn-primary">保存</button>
+        <button type="button" id="key-clear" class="btn-secondary">清除</button>
+      </div>
+      <label class="key-remember">
+        <input type="checkbox" id="key-remember" checked>
+        <span>在本浏览器记住</span>
+        <span class="key-hint">未勾选则仅本次会话有效；留空则使用服务器默认 key</span>
+      </label>
+    </div>
+  </section>
+
+  <main class="workspace">
+    <section class="editor-pane" aria-label="文档编辑器">
+      <div class="editor-toolbar">
+        <div class="toolbar-group">
+          <button type="button" id="tool-edit" class="tool-button active" data-editor-mode="edit" aria-pressed="true" aria-controls="document-page">编辑</button>
+          <button type="button" id="tool-comments" class="tool-button" data-editor-mode="comments" aria-pressed="false" aria-controls="document-page">批注</button>
+          <button type="button" id="tool-review" class="tool-button" data-editor-mode="review" aria-pressed="false" aria-controls="document-page">审阅</button>
+        </div>
+        <div class="toolbar-group align-right">
+          <span class="doc-state" id="doc-state">等待文档</span>
+          <button type="button" class="compact-upload" id="compact-upload">上传</button>
+        </div>
+      </div>
+
+      <div class="editor-stage">
+        <article class="document-page" id="document-page" contenteditable="true" spellcheck="false">
+          <div class="doc-kicker">Office Agent Workspace</div>
+          <h1>把文档拖到右侧 AI 面板开始编辑</h1>
+          <p>
+            这里是网页内的编辑器工作区。右侧 AI 对话会读取上传的 Word 或 PowerPoint 文件，
+            根据你的指令生成修改方案，并在执行时显示每一步进程、缓存命中率和最终下载入口。
+          </p>
+          <p>
+            你也可以先在这里整理想法，再把明确指令输入右侧对话框。
+          </p>
+        </article>
+      </div>
+
+      <div class="status-strip">
+        <span>稳定前缀缓存</span>
+        <span>OOXML Patch</span>
+        <span>DOCX / PPTX</span>
+      </div>
+    </section>
+
+    <aside class="ai-panel" aria-label="AI 对话框">
+      <div class="ai-header">
+        <div>
+          <div class="ai-title">Claude</div>
+          <div class="ai-subtitle">文档侧栏助手</div>
+        </div>
+        <div class="ai-live-pill" id="ai-live-pill">空闲</div>
+      </div>
+
+      <div class="chat-scroll" id="chat-scroll" aria-live="polite">
+        <div class="message assistant intro-message">
+          <div class="message-label">Office Agent</div>
+          <div class="message-body">
+            上传文档后，左侧会显示文稿预览。你可以直接输入要修改的内容，我会边执行边把可见变更同步到左侧。
+          </div>
+        </div>
+
+        <section class="message assistant progress-card" id="progress-card" hidden>
+          <div class="message-label">执行进程</div>
+          <h2 class="progress-title">
+            <span id="progress-status-icon" class="status-dot" aria-hidden="true"></span>
+            <span id="progress-status-text">规划中</span>
+          </h2>
+
+          <div class="whale-stage idle" id="whale-stage">
+            <div class="activity-orbit" aria-hidden="true">
+              <span></span>
+            </div>
+            <div class="whale-caption" id="whale-caption">DeepSeek 正在处理</div>
+          </div>
+
+          <div class="rationale" id="rationale" hidden></div>
+
+          <ol class="steps" id="steps"></ol>
+
+          <div class="metrics" id="metrics" hidden>
+            <div class="metric">
+              <div class="metric-label">缓存命中率</div>
+              <div class="metric-value" id="m-cache-ratio">—</div>
+              <div class="metric-sub" id="m-cache-sub">—</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">输入 token</div>
+              <div class="metric-value" id="m-input">—</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">输出 token</div>
+              <div class="metric-value" id="m-output">—</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">迭代次数</div>
+              <div class="metric-value" id="m-iters">—</div>
+            </div>
+          </div>
+
+          <div class="actions" id="final-actions" hidden>
+            <button id="btn-download" class="btn-primary">下载修改后的文档</button>
+            <button id="btn-reedit" class="btn-secondary" hidden>继续修改 <span id="reedit-status"></span></button>
+            <button id="btn-restart" class="btn-secondary">重新开始</button>
+          </div>
+
+          <div class="error-box" id="error-box" hidden></div>
+        </section>
+      </div>
+
+      <section class="input-card" id="input-card">
+        <div class="dropzone compact" id="dropzone" tabindex="0" role="button" aria-label="点击或拖入 .docx / .pptx 文件">
+          <input type="file" id="file-input" accept=".docx,.pptx,.doc,.ppt" hidden>
+          <div class="dropzone-empty" id="dropzone-empty">
+            <div class="dropzone-title">上传文档</div>
+            <div class="dropzone-hint">DOCX / PPTX</div>
+          </div>
+          <div class="dropzone-filled" id="dropzone-filled" hidden>
+            <div class="file-name" id="file-name"></div>
+            <div class="file-meta" id="file-meta"></div>
+            <button type="button" class="link-btn" id="file-clear">移除</button>
+          </div>
+        </div>
+
+        <label class="composer-label" for="intent-input">指令</label>
+        <textarea
+          id="intent-input"
+          rows="4"
+          placeholder="例如：把所有 AutoPaper 改成 PaperAuto，页眉换成季度报告 2025Q4；或按参考材料里的格式说明重排。"
+        ></textarea>
+
+        <div class="ref-section">
+          <div class="ref-header">
+            <span>参考材料 <span class="h2-hint">最多 6 份</span></span>
+            <button type="button" class="link-btn" id="ref-add">添加材料</button>
+          </div>
+          <input type="file" id="ref-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.md,.markdown,.txt" multiple hidden>
+          <ul class="ref-list" id="ref-list"></ul>
+        </div>
+
+        <div class="run-row">
+          <button id="btn-run" class="btn-primary" disabled>
+            <span class="btn-label">发送并执行</span>
+            <span class="btn-spinner" hidden>处理中</span>
+          </button>
+          <span class="run-hint">会显示规划和每一步修改</span>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+:root {
+  --color-primary: #0078d4;
+  --color-primary-hover: #106ebe;
+  --color-secondary: #f3f2f1;
+  --color-text: #323130;
+  --color-text-light: #605e5c;
+  --color-border: #edebe9;
+  --color-success: #107c10;
+  --color-error: #d13438;
+  --color-warning: #ffb900;
+  --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: #ffffff;
+  line-height: 1.5;
+  padding: 16px;
+}
+
+#app {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 12px;
+  color: var(--color-text-light);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-section label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 14px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
+}
+
+textarea::placeholder {
+  color: var(--color-text-light);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-primary {
+  flex: 1;
+  padding: 10px 16px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-primary:disabled {
+  background: #c8c6c4;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  flex: 1;
+  padding: 10px 16px;
+  background: white;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 4px;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #f3f2f1;
+}
+
+.status-section {
+  min-height: 40px;
+}
+
+.status {
+  padding: 10px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  display: none;
+}
+
+.status.loading {
+  display: block;
+  background: #f3f2f1;
+  color: var(--color-text-light);
+}
+
+.status.success {
+  display: block;
+  background: #dff6dd;
+  color: var(--color-success);
+}
+
+.status.error {
+  display: block;
+  background: #fde7e9;
+  color: var(--color-error);
+}
+
+.manifest-section,
+.patch-section,
+.validation-section,
+.metrics-section {
+  margin-top: 8px;
+}
+
+.manifest-section h3,
+.patch-section h3,
+.validation-section h3,
+.metrics-section h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+pre {
+  background: #f3f2f1;
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#validation-output {
+  font-size: 13px;
+}
+
+.validation-item {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.validation-item:last-child {
+  border-bottom: none;
+}
+
+.validation-item.success {
+  color: var(--color-success);
+}
+
+.validation-item.error {
+  color: var(--color-error);
+}
+
+#metrics-output {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.metric-item {
+  background: #f3f2f1;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: var(--color-text-light);
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+  text-align: center;
+}
+
+.footer p {
+  font-size: 11px;
+  color: var(--color-text-light);
+}

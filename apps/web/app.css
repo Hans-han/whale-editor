@@ -421,6 +421,12 @@ textarea:focus,
   padding: 8px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  /* Stick to the top of the editor pane so it stays visible while
+     the document scrolls beneath. z-index above .editor-stage. */
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  backdrop-filter: blur(10px);
 }
 
 .toolbar-group {
@@ -462,11 +468,27 @@ textarea:focus,
     linear-gradient(90deg, var(--border) 1px, transparent 1px),
     var(--surface-3);
   background-size: 28px 28px, 28px 28px, auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Block-level scroll container so long documents flow top-down
+     and the user can scroll naturally. The empty-state pin handles
+     its own centering via absolute positioning. */
+  display: block;
   position: relative;
   transition: background-color 0.18s;
+}
+
+/* Empty state: centered absolutely inside the stage when no document loaded */
+.empty-drop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Document page (when loaded): centered horizontally, top-aligned vertically */
+.document-page {
+  margin: 0 auto;
 }
 .editor-stage.dragging {
   background-color: var(--accent-soft);
@@ -497,47 +519,82 @@ textarea:focus,
   color: var(--text-3);
 }
 
+/* Document page: aim to match how Word renders the same .docx.
+   - A4-ish width with Word's default 1-inch margins (~96px)
+   - Chinese body: 宋体 (SimSun on Win, STSong/Songti on macOS)
+   - Headings: 黑体 / 微软雅黑 (SimHei / Heiti SC / Microsoft YaHei)
+   - English fallback: Calibri / Cambria (Word defaults) */
 .document-page {
   width: min(100%, 820px);
   min-height: 1020px;
   margin: 0 auto;
-  padding: clamp(42px, 7vw, 76px);
+  padding: 96px;
   background: var(--surface);
-  border: 1px solid rgba(184, 178, 164, 0.36);
+  border: 1px solid var(--border);
   box-shadow: var(--shadow);
   color: var(--text);
+  font-family: "Calibri", "STSong", "Songti SC", "宋体", SimSun, "Times New Roman", serif;
+  font-size: 14.66px;        /* Word body 11pt @ 96 dpi */
+  line-height: 1.5;          /* Word 'multiple 1.5 lines' for body */
 }
 
 .document-page .doc-kicker {
-  margin-bottom: 20px;
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+  color: var(--text-3);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
+/* Word default heading hierarchy: 黑体 / Heiti SC, decreasing size */
 .document-page h1 {
-  margin: 0 0 22px;
-  max-width: 12ch;
-  font-size: clamp(34px, 5vw, 56px);
-  line-height: 1.02;
-  letter-spacing: 0;
-}
-
-.document-page p {
-  max-width: 64ch;
   margin: 0 0 16px;
-  color: var(--text-2);
-  font-size: 16px;
-  line-height: 1.85;
+  font-family: "Cambria", "Heiti SC", "黑体", "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 26px;       /* ~Heading 1 / 二号 */
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0;
+  color: var(--text);
 }
 
 .document-page h2 {
-  margin: 26px 0 10px;
-  font-size: 17px;
-  line-height: 1.25;
-  letter-spacing: 0;
+  margin: 22px 0 10px;
+  font-family: "Cambria", "Heiti SC", "黑体", "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 19px;       /* ~Heading 2 / 三号 */
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.document-page h3 {
+  margin: 18px 0 8px;
+  font-family: "Cambria", "Heiti SC", "黑体", "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 16px;       /* ~Heading 3 / 四号 */
+  font-weight: 700;
+  color: var(--text);
+}
+
+.document-page p {
+  margin: 0 0 12px;
+  /* indent the first line by 2 chars — Chinese body convention */
+  text-indent: 2em;
+  color: var(--text);
+  font-size: 14.66px;
+  line-height: 1.75;
+  text-align: justify;
+}
+
+/* Lists, tables, headings: don't auto-indent */
+.document-page h1,
+.document-page h2,
+.document-page h3,
+.document-page h4,
+.document-page li,
+.document-page td,
+.document-page .doc-kicker,
+.document-page p.no-indent {
+  text-indent: 0;
 }
 
 .doc-actions {
@@ -1497,18 +1554,36 @@ textarea:focus-visible {
   text-align: justify;
 }
 
+/* Word-style table: only horizontal rules (top of header row, bottom of every row).
+   Word's default table style draws a full grid, but the user's reference docs use
+   the "三线表" / journal style: top + header bottom + bottom rules only. We mirror
+   that here. */
 .doc-table-preview {
   width: 100%;
   margin: 18px 0;
   border-collapse: collapse;
   font-size: 13px;
+  border-top: 1.5px solid var(--text);    /* top rule */
+  border-bottom: 1.5px solid var(--text); /* bottom rule */
 }
 
 .doc-table-preview td {
   padding: 8px 9px;
-  border: 1px solid var(--border-strong);
+  border: none;
+  border-bottom: 1px solid var(--border-strong); /* horizontal row rule only */
   vertical-align: top;
   line-height: 1.55;
+}
+
+/* Last row's border is replaced by the table's bottom rule */
+.doc-table-preview tr:last-child td {
+  border-bottom: none;
+}
+
+/* First row (treated as header) gets a thicker bottom rule */
+.doc-table-preview tr:first-child td {
+  border-bottom: 1.5px solid var(--text);
+  font-weight: 600;
 }
 
 .slide-preview-stack {

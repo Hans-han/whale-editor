@@ -625,24 +625,6 @@ textarea:focus,
   animation: shimmer 1.2s ease-in-out infinite;
 }
 
-.status-strip {
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.62);
-  border-top: 1px solid var(--border);
-  color: var(--text-2);
-  font-size: 12px;
-}
-
-.status-strip span {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: var(--surface-2);
-}
-
 .ai-panel {
   min-height: 0;
   height: calc(100dvh - 94px);
@@ -1712,8 +1694,7 @@ textarea::placeholder {
 
   .brand .subtitle,
   .server-pill,
-  .run-hint,
-  .status-strip {
+  .run-hint {
     display: none;
   }
 

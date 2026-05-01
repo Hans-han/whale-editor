@@ -1,61 +1,61 @@
 :root {
   color-scheme: light dark;
 
-  /* Light: warm beige paper + sage accent */
-  --bg: #f6f5f1;
-  --pane: #fbfaf7;
+  /* Light: sea-foam pearl + deep ocean accent. The whale's surface view. */
+  --bg: #eef3f7;
+  --pane: #f6f9fc;
   --surface: #ffffff;
-  --surface-2: #f1f0eb;
-  --surface-3: #e8e6df;
-  --border: #d8d5ca;
-  --border-strong: #b8b2a4;
-  --text: #1f241f;
-  --text-2: #676b62;
-  --text-3: #8d9087;
-  --accent: #2f6b4f;
-  --accent-hover: #25583f;
-  --accent-soft: #e1eee7;
-  --accent-line: #9fc3af;
-  --success: #2f6b4f;
-  --success-soft: #e1eee7;
-  --warn: #a15f2b;
-  --warn-soft: #f5e7d8;
-  --error: #b83b37;
-  --error-soft: #f7dfdc;
-  --shadow: 0 22px 70px rgba(62, 58, 47, 0.13);
-  --bg-grad-top: #fbfaf7;
-  --bg-grad-bottom: #edeae2;
-  --bg-grad-tint: rgba(47, 107, 79, 0.05);
+  --surface-2: #e6eef5;
+  --surface-3: #d8e3ec;
+  --border: #c5d2de;
+  --border-strong: #97a9bc;
+  --text: #0f1c2b;
+  --text-2: #4a6072;
+  --text-3: #708497;
+  --accent: #1e5e8e;
+  --accent-hover: #154974;
+  --accent-soft: #dbe8f3;
+  --accent-line: #8eb8d4;
+  --success: #2f7a55;
+  --success-soft: #ddeee4;
+  --warn: #b3691e;
+  --warn-soft: #f5e3d2;
+  --error: #c0413c;
+  --error-soft: #f6dad8;
+  --shadow: 0 22px 70px rgba(15, 28, 43, 0.13);
+  --bg-grad-top: #f7fbff;
+  --bg-grad-bottom: #dde7f0;
+  --bg-grad-tint: rgba(30, 94, 142, 0.05);
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
-/* Dark: warm ink paper + sage accent. Same hue family, inverted lightness. */
+/* Dark: deep-sea ink + bioluminescent accent. The whale's natural habitat. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #15140f;
-    --pane: #1c1c14;
-    --surface: #22221a;
-    --surface-2: #2a2a20;
-    --surface-3: #34342a;
-    --border: #3f3f33;
-    --border-strong: #5a5a4a;
-    --text: #ece9df;
-    --text-2: #a4a392;
-    --text-3: #7a7a6c;
-    --accent: #6db890;
-    --accent-hover: #88c8a4;
-    --accent-soft: rgba(109, 184, 144, 0.14);
-    --accent-line: rgba(109, 184, 144, 0.42);
-    --success: #6db890;
-    --success-soft: rgba(109, 184, 144, 0.14);
-    --warn: #d99a5b;
-    --warn-soft: rgba(217, 154, 91, 0.16);
+    --bg: #0a1622;
+    --pane: #0f1e2c;
+    --surface: #142634;
+    --surface-2: #1a2f40;
+    --surface-3: #213a4d;
+    --border: #2c4a60;
+    --border-strong: #436784;
+    --text: #d8e6f0;
+    --text-2: #91a7be;
+    --text-3: #6e8398;
+    --accent: #5fa8d8;
+    --accent-hover: #7abce6;
+    --accent-soft: rgba(95, 168, 216, 0.14);
+    --accent-line: rgba(95, 168, 216, 0.42);
+    --success: #4fb585;
+    --success-soft: rgba(79, 181, 133, 0.14);
+    --warn: #e6a35c;
+    --warn-soft: rgba(230, 163, 92, 0.16);
     --error: #e57368;
     --error-soft: rgba(229, 115, 104, 0.16);
     --shadow: 0 22px 70px rgba(0, 0, 0, 0.55);
-    --bg-grad-top: #1c1c14;
-    --bg-grad-bottom: #100f0b;
-    --bg-grad-tint: rgba(109, 184, 144, 0.06);
+    --bg-grad-top: #0f1e2c;
+    --bg-grad-bottom: #060d15;
+    --bg-grad-tint: rgba(95, 168, 216, 0.06);
   }
 }
 
@@ -99,7 +99,7 @@ button {
   height: 58px;
   padding: 0 22px;
   background: var(--pane);
-  border-bottom: 1px solid rgba(216, 213, 202, 0.85);
+  border-bottom: 1px solid var(--border);
   backdrop-filter: blur(14px);
 }
 
@@ -599,7 +599,7 @@ textarea:focus,
 
 .doc-warning-list > div {
   padding: 8px 9px;
-  border: 1px solid rgba(161, 95, 43, 0.26);
+  border: 1px solid var(--warn);
   border-radius: 8px;
   background: var(--warn-soft);
   font-family: var(--mono);
@@ -1040,7 +1040,7 @@ textarea::placeholder {
 .activity-orbit {
   width: 92px;
   height: 42px;
-  border: 1px solid rgba(47, 107, 79, 0.24);
+  border: 1px solid var(--accent-line);
   border-radius: 50%;
   position: relative;
 }
@@ -1050,7 +1050,7 @@ textarea::placeholder {
   content: "";
   position: absolute;
   inset: 0;
-  border: 1px solid rgba(161, 95, 43, 0.18);
+  border: 1px solid var(--warn-soft);
   border-radius: 50%;
   transform: rotate(28deg);
 }
@@ -1271,7 +1271,7 @@ textarea::placeholder {
   padding: 10px;
   color: var(--error);
   background: var(--error-soft);
-  border: 1px solid rgba(184, 59, 55, 0.28);
+  border: 1px solid var(--error);
   border-radius: 8px;
   white-space: pre-wrap;
   font-family: var(--mono);
@@ -1413,12 +1413,12 @@ textarea::placeholder {
 .doc-commented-line {
   border-left: 3px solid var(--warn);
   padding-left: 10px;
-  background: linear-gradient(90deg, rgba(161, 95, 43, 0.08), transparent 76%);
+  background: linear-gradient(90deg, var(--warn-soft), transparent 76%);
 }
 
 .doc-updated-line {
   animation: previewFlash 1.8s ease-out;
-  background: rgba(47, 107, 79, 0.12);
+  background: var(--accent-soft);
 }
 
 .align-center {

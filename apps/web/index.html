@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
+  <!-- Skip link: keyboard users can jump past the topbar -->
+  <a href="#main-content" class="skip-link" data-i18n="a11y.skip">Skip to main content</a>
+
   <!-- Reusable whale glyph. Custom design: spouting + V-flukes silhouette,
        facing right. Shares the 'friendly cartoon whale' genre with similar
        brands but distinguished by the 3-droplet spout and angled tail flukes.
@@ -34,8 +37,8 @@
       <span class="subtitle" data-i18n="brand.subtitle">DeepSeek-powered · cache-friendly</span>
     </div>
     <div class="topbar-right">
-      <span class="server-pill" data-i18n="server.pill">Local workspace</span>
-      <button type="button" id="lang-toggle" class="lang-toggle" data-i18n-title="lang.title" title="Switch language">中</button>
+      <span class="server-pill" data-i18n="server.pill" aria-hidden="true">Local workspace</span>
+      <button type="button" id="lang-toggle" class="lang-toggle" data-i18n-title="lang.title" data-i18n-aria="lang.title" title="Switch language" aria-label="Switch language">中</button>
       <button type="button" id="key-toggle" class="key-toggle" aria-expanded="false">
         <span class="key-icon" aria-hidden="true"></span>
         <span class="key-label" data-i18n="key.label">API Key</span>
@@ -62,7 +65,7 @@
     </div>
   </section>
 
-  <main class="workspace">
+  <main class="workspace" id="main-content">
     <section class="editor-pane" data-i18n-aria="editor.aria" aria-label="Document editor">
       <div class="editor-toolbar">
         <div class="toolbar-group">
@@ -101,7 +104,7 @@
 
       <div class="chat-scroll" id="chat-scroll" aria-live="polite">
         <div class="message assistant intro-message">
-          <div class="message-label">Whale Editor</div>
+          <h3 class="message-label">Whale Editor</h3>
           <div class="message-body" data-i18n="intro.body">
             Upload a document and a preview shows on the left. Tell me what to change and I'll apply edits step by step, mirroring visible changes back into the preview.
           </div>

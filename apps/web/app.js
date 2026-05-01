@@ -1257,6 +1257,19 @@
 
   intentInput.addEventListener('input', updateRunEnabled);
 
+  // Preset prompt chips: fill textarea + focus
+  document.querySelectorAll('.preset-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const preset = chip.dataset.preset;
+      if (!preset) return;
+      const value = t('preset.' + preset + '.value');
+      intentInput.value = value;
+      updateRunEnabled();
+      intentInput.focus();
+      intentInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+
   btnRun.addEventListener('click', () => {
     runAuto({ reuseSession: followUpMode && canReuseSession() });
   });

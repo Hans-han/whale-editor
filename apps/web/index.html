@@ -163,43 +163,55 @@
         </section>
       </div>
 
-      <section class="input-card" id="input-card">
-        <div class="dropzone compact" id="dropzone" tabindex="0" role="button" aria-label="点击或拖入 .docx / .pptx 文件">
-          <input type="file" id="file-input" accept=".docx,.pptx,.doc,.ppt" hidden>
-          <div class="dropzone-empty" id="dropzone-empty">
-            <div class="dropzone-title">上传文档</div>
-            <div class="dropzone-hint">DOCX / PPTX</div>
-          </div>
-          <div class="dropzone-filled" id="dropzone-filled" hidden>
-            <div class="file-name" id="file-name"></div>
-            <div class="file-meta" id="file-meta"></div>
-            <button type="button" class="link-btn" id="file-clear">移除</button>
+      <section class="input-card composer" id="input-card">
+        <!-- File row: file chip when set, else just a "+" button -->
+        <div class="composer-files">
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="点击或拖入文档" title="拖入或点击添加 DOCX / PPTX / DOC / PPT">
+            <input type="file" id="file-input" accept=".docx,.pptx,.doc,.ppt" hidden>
+            <span class="dropzone-empty" id="dropzone-empty" aria-hidden="true">
+              <svg viewBox="0 0 16 16" class="plus-icon" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M7.25 2.5h1.5v4.75h4.75v1.5H8.75v4.75h-1.5V8.75H2.5v-1.5h4.75z"/>
+              </svg>
+            </span>
+            <span class="dropzone-filled" id="dropzone-filled" hidden>
+              <span class="file-chip-icon" aria-hidden="true">📄</span>
+              <span class="file-chip-name" id="file-name"></span>
+              <span class="file-chip-meta" id="file-meta"></span>
+              <button type="button" class="file-chip-remove" id="file-clear" aria-label="移除文档">×</button>
+            </span>
           </div>
         </div>
 
-        <label class="composer-label" for="intent-input">指令</label>
+        <!-- Intent textarea (no border; sits inside composer card) -->
+        <label class="composer-label sr-only" for="intent-input">指令</label>
         <textarea
           id="intent-input"
-          rows="4"
+          rows="3"
           placeholder="例如：把所有 AutoPaper 改成 PaperAuto，页眉换成季度报告 2025Q4；或按参考材料里的格式说明重排。"
         ></textarea>
 
-        <div class="ref-section">
-          <div class="ref-header">
-            <span>参考材料 <span class="h2-hint">最多 6 份</span></span>
-            <button type="button" class="link-btn" id="ref-add">添加材料</button>
-          </div>
+        <!-- References row: chips inline, "+" to add -->
+        <div class="ref-row">
+          <button type="button" class="ref-add-chip" id="ref-add" title="添加参考材料 (PDF / DOC / DOCX / PPT / PPTX / MD / TXT，最多 6 份)">
+            <svg viewBox="0 0 16 16" class="plus-icon" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M7.25 2.5h1.5v4.75h4.75v1.5H8.75v4.75h-1.5V8.75H2.5v-1.5h4.75z"/>
+            </svg>
+            <span>参考材料</span>
+          </button>
           <input type="file" id="ref-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.md,.markdown,.txt" multiple hidden>
           <ul class="ref-list" id="ref-list"></ul>
         </div>
 
-        <div class="run-row">
-          <button id="btn-run" class="btn-primary" disabled>
-            <span class="btn-label">发送并执行</span>
-            <span class="btn-spinner" hidden>处理中</span>
-          </button>
-          <span class="run-hint">会显示规划和每一步修改</span>
-        </div>
+        <!-- Run button: full-width primary action -->
+        <button id="btn-run" class="composer-run btn-primary" disabled>
+          <span class="btn-label">发送并执行</span>
+          <span class="btn-spinner" hidden>
+            <svg viewBox="0 0 16 16" class="spin-icon" aria-hidden="true" focusable="false">
+              <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="9 9" opacity="0.85"/>
+            </svg>
+            处理中
+          </span>
+        </button>
       </section>
     </aside>
   </main>

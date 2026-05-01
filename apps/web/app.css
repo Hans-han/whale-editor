@@ -118,30 +118,35 @@ button {
 }
 
 /* Unified whale glyph — used in topbar, ai-panel header, and empty-drop hint.
-   Color comes from currentColor so it adapts to light/dark + emphasis. */
+   Color comes from currentColor so it adapts to light/dark + emphasis.
+   ViewBox is 24×24 with built-in headroom for the 3-droplet spout. */
 .brand .logo {
-  width: 26px;
-  height: 17px;
+  width: 24px;
+  height: 24px;
   flex: 0 0 auto;
   color: var(--accent);
   display: inline-block;
   vertical-align: middle;
+  transition: transform 0.25s cubic-bezier(.4, 0, .2, 1);
+}
+.brand:hover .logo {
+  transform: translateY(-1px);
 }
 .brand .logo use { color: inherit; }
 
 .ai-logo {
   width: 22px;
-  height: 14px;
+  height: 22px;
   color: var(--accent);
-  vertical-align: -2px;
+  vertical-align: -6px;
   margin-right: 2px;
 }
 
 .empty-drop-icon {
-  width: 80px;
-  height: 53px;
+  width: 84px;
+  height: 84px;
   color: var(--accent);
-  opacity: 0.85;
+  opacity: 0.9;
   margin-bottom: 4px;
 }
 

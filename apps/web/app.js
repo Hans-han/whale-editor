@@ -46,12 +46,11 @@
       'final.reedit': 'Edit again',
       'final.restart': 'Start over',
       'composer.label': 'Instruction',
-      'composer.placeholder': "e.g. Replace every 'AutoPaper' with 'PaperAuto' and change the header to 'Quarterly report 2025Q4'. Or apply the formatting spec attached as a reference.",
+      'composer.placeholder': "e.g. Replace every 'AutoPaper' with 'PaperAuto' and change the header to 'Quarterly report 2025Q4'.",
       'dropzone.aria': 'Click or drop a document',
       'dropzone.title': 'Click or drop DOCX / PPTX / DOC / PPT',
       'file.remove': 'Remove document',
-      'ref.add': 'References',
-      'ref.title': 'Attach reference materials (PDF / DOC / DOCX / PPT / PPTX / MD / TXT, up to 6)',
+      'dropzone.add': 'Upload',
       'run.label': 'Send and run',
       'run.processing': 'Processing',
       'progress.scanned': '{n} objects scanned',
@@ -68,9 +67,6 @@
       'session.reuseStatus': '({m}:{s} · {n} left)',
       'alert.unsupported': 'Only .docx / .pptx / .doc / .ppt are supported',
       'alert.tooBig': 'File exceeds the 50 MB limit',
-      'alert.refUnsupported': 'Unsupported format: {name} (only PDF / DOC / DOCX / PPT / PPTX / MD / TXT)',
-      'alert.refTooBig': 'Reference {name} exceeds 50 MB',
-      'alert.refMax': 'You can attach at most {n} reference files',
       'confirm.notSk': "This doesn't look like a standard sk- DeepSeek key. Save anyway?",
       'error.requestFailed': 'Request failed: {msg}',
       'error.streamFailed': 'Stream read failed: {msg}',
@@ -93,7 +89,6 @@
       'msg.label.reedit': 'Edit again',
       'msg.label.user': 'Your instruction',
       'msg.empty.body': 'Apply references',
-      'ref.removeAria': 'Remove',
       'patch.replace_paragraph_text': 'Replace paragraph',
       'patch.replace_text_in_paragraph': 'Find/replace in paragraph',
       'patch.update_table_cell_text': 'Update table cell',
@@ -153,12 +148,11 @@
       'final.reedit': '继续修改',
       'final.restart': '重新开始',
       'composer.label': '指令',
-      'composer.placeholder': '例如：把所有 AutoPaper 改成 PaperAuto，页眉换成季度报告 2025Q4；或按参考材料里的格式说明重排。',
+      'composer.placeholder': '例如：把所有 AutoPaper 改成 PaperAuto，页眉换成季度报告 2025Q4。',
       'dropzone.aria': '点击或拖入文档',
       'dropzone.title': '拖入或点击添加 DOCX / PPTX / DOC / PPT',
       'file.remove': '移除文档',
-      'ref.add': '参考材料',
-      'ref.title': '添加参考材料 (PDF / DOC / DOCX / PPT / PPTX / MD / TXT，最多 6 份)',
+      'dropzone.add': '上传文档',
       'run.label': '发送并执行',
       'run.processing': '处理中',
       'progress.scanned': '已扫描 {n} 个对象',
@@ -175,9 +169,6 @@
       'session.reuseStatus': '（{m}:{s} · 剩 {n} 次）',
       'alert.unsupported': '只支持 .docx / .pptx / .doc / .ppt 文件',
       'alert.tooBig': '文件超过 50MB 上限',
-      'alert.refUnsupported': '不支持的格式：{name}（仅 PDF / DOC / DOCX / PPT / PPTX / MD / TXT）',
-      'alert.refTooBig': '参考材料 {name} 超过 50MB',
-      'alert.refMax': '最多只能添加 {n} 份参考材料',
       'confirm.notSk': '看起来不是标准 sk- 开头的 DeepSeek key，仍然保存？',
       'error.requestFailed': '请求失败：{msg}',
       'error.streamFailed': '流式读取失败：{msg}',
@@ -200,7 +191,6 @@
       'msg.label.reedit': '继续修改',
       'msg.label.user': '用户指令',
       'msg.empty.body': '按参考材料修改',
-      'ref.removeAria': '移除',
       'patch.replace_paragraph_text': '替换段落',
       'patch.replace_text_in_paragraph': '段内查找替换',
       'patch.update_table_cell_text': '改表格单元格',
@@ -285,9 +275,6 @@
   const fileMetaEl = $('file-meta');
   const fileClear = $('file-clear');
   const intentInput = $('intent-input');
-  const refAdd = $('ref-add');
-  const refInput = $('ref-input');
-  const refList = $('ref-list');
   const btnRun = $('btn-run');
   const keyToggle = $('key-toggle');
   const keyPanel = $('key-panel');
@@ -326,7 +313,6 @@
 
   // ---------- State ----------
   let selectedFile = null;
-  let referenceFiles = [];
   let modifiedBlob = null;
   let modifiedFilename = null;
   let modifiedDownloadUrl = null;
@@ -344,8 +330,6 @@
   let inspectRequestId = 0;
   let previewUpdatedIds = new Set();
 
-  const REF_ACCEPTED = /\.(pdf|docx?|pptx?|md|markdown|txt)$/i;
-  const MAX_REFS = 6;
   const KEY_STORAGE = 'office-agent.deepseek-key';
   const KEY_REMEMBER = 'office-agent.deepseek-key-remember';
 
@@ -1168,61 +1152,9 @@
   }
 
   function updateRunEnabled() {
-    const hasIntent = intentInput.value.trim() || referenceFiles.length > 0;
+    const hasIntent = intentInput.value.trim();
     const hasTarget = selectedFile || canReuseSession();
     btnRun.disabled = isRunning || !(hasTarget && hasIntent);
-  }
-
-  // ---------- References ----------
-  function addReferences(fileList) {
-    for (const f of fileList) {
-      if (referenceFiles.length >= MAX_REFS) {
-        alert(t('alert.refMax', {n: MAX_REFS}));
-        break;
-      }
-      if (!REF_ACCEPTED.test(f.name)) {
-        alert(t('alert.refUnsupported', {name: f.name}));
-        continue;
-      }
-      if (f.size > 50 * 1024 * 1024) {
-        alert(t('alert.refTooBig', {name: f.name}));
-        continue;
-      }
-      const dup = referenceFiles.find((r) => r.name === f.name && r.size === f.size);
-      if (dup) continue;
-      referenceFiles.push(f);
-    }
-    renderRefList();
-    updateRunEnabled();
-  }
-
-  function refKind(filename) {
-    const m = filename.toLowerCase().match(/\.(pdf|docx?|pptx?|md|markdown|txt)$/);
-    if (!m) return 'FILE';
-    return m[1] === 'markdown' ? 'MD' : m[1].toUpperCase();
-  }
-
-  function renderRefList() {
-    refList.innerHTML = '';
-    referenceFiles.forEach((f, i) => {
-      const li = document.createElement('li');
-      li.className = 'ref-item';
-      li.innerHTML = `
-        <span class="ref-kind"></span>
-        <span class="ref-name"></span>
-        <span class="ref-size"></span>
-        <button type="button" class="ref-remove" aria-label="${t('ref.removeAria')}">x</button>
-      `;
-      li.querySelector('.ref-kind').textContent = refKind(f.name);
-      li.querySelector('.ref-name').textContent = f.name;
-      li.querySelector('.ref-size').textContent = formatSize(f.size);
-      li.querySelector('.ref-remove').addEventListener('click', () => {
-        referenceFiles.splice(i, 1);
-        renderRefList();
-        updateRunEnabled();
-      });
-      refList.appendChild(li);
-    });
   }
 
   // ---------- Event listeners ----------
@@ -1305,13 +1237,6 @@
 
   intentInput.addEventListener('input', updateRunEnabled);
 
-  refAdd.addEventListener('click', () => refInput.click());
-
-  refInput.addEventListener('change', (e) => {
-    addReferences(e.target.files);
-    refInput.value = '';
-  });
-
   btnRun.addEventListener('click', () => {
     runAuto({ reuseSession: followUpMode && canReuseSession() });
   });
@@ -1327,8 +1252,6 @@
     if (!canReuseSession()) return;
     followUpMode = true;
     intentInput.value = '';
-    referenceFiles = [];
-    renderRefList();
     updateRunEnabled();
     intentInput.focus();
     setLiveState(t('live.waitingInput'), 'done');
@@ -1347,8 +1270,6 @@
     clearSession();
     fileInput.value = '';
     setFile(null);
-    referenceFiles = [];
-    renderRefList();
     intentInput.value = '';
     setLiveState(t('ai.live.idle'));
     updateRunEnabled();
@@ -1411,7 +1332,7 @@
     if (!willReuse && !selectedFile) return;
 
     const intent = intentInput.value.trim();
-    if (!intent && referenceFiles.length === 0) return;
+    if (!intent) return;
 
     isRunning = true;
     updateRunEnabled();
@@ -1433,13 +1354,7 @@
       const ext = selectedFile.name.split('.').pop().toLowerCase();
       fd.append('fileType', ext === 'doc' ? 'docx' : ext === 'ppt' ? 'pptx' : ext);
     }
-    for (const ref of referenceFiles) {
-      fd.append('references', ref, ref.name);
-    }
-
     intentInput.value = '';
-    referenceFiles = [];
-    renderRefList();
     updateRunEnabled();
 
     const headers = {};

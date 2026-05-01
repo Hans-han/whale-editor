@@ -178,19 +178,8 @@
           id="intent-input"
           rows="3"
           data-i18n-placeholder="composer.placeholder"
-          placeholder="e.g. Replace every 'AutoPaper' with 'PaperAuto' and change the header to 'Quarterly report 2025Q4'. Or apply the formatting spec attached as a reference."
+          placeholder="e.g. Replace every 'AutoPaper' with 'PaperAuto' and change the header to 'Quarterly report 2025Q4'."
         ></textarea>
-
-        <div class="ref-row">
-          <button type="button" class="ref-add-chip" id="ref-add" data-i18n-title="ref.title" title="Attach reference materials (PDF / DOC / DOCX / PPT / PPTX / MD / TXT, up to 6)">
-            <svg viewBox="0 0 16 16" class="plus-icon" aria-hidden="true" focusable="false">
-              <path fill="currentColor" d="M7.25 2.5h1.5v4.75h4.75v1.5H8.75v4.75h-1.5V8.75H2.5v-1.5h4.75z"/>
-            </svg>
-            <span data-i18n="ref.add">References</span>
-          </button>
-          <input type="file" id="ref-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.md,.markdown,.txt" multiple hidden>
-          <ul class="ref-list" id="ref-list"></ul>
-        </div>
 
         <button id="btn-run" class="composer-run btn-primary" disabled>
           <span class="btn-label" data-i18n="run.label">Send and run</span>

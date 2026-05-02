@@ -441,10 +441,10 @@
     }
 
     documentPage.innerHTML = `
-      <div class="doc-kicker">Whale Editor Workspace</div>
-      <h1>把文档拖到这里</h1>
-      <p>支持 Word 或 PowerPoint。拖入后左侧显示预览，右侧会给出报价、修改窗口和执行进程。</p>
-      <p>这里现在是紧凑工作区，不再拉成一整页很长的文稿框。</p>
+      <div class="doc-kicker">Whale Editor</div>
+      <h1>拖入文档开始修改</h1>
+      <p>DOCX / PPTX 会在这里展开预览。</p>
+      <p>右侧输入修改要求，左侧同步显示可见变更。</p>
     `;
   }
 

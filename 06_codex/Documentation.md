@@ -43,6 +43,8 @@
 - 已接入下载支付锁：修改完成后前端显示“解锁下载”，后端 `/api/session/:id/download` 在未支付时返回 HTTP `402`，支付成功后才返回真实 DOCX/PPTX。
 - 已接入 Stripe Checkout Session：`/api/checkout/session` 创建结算页，`/api/checkout/confirm` 和 `/api/stripe/webhook` 可把当前文档 session 标记为已支付。
 - 已把修改稿预览和下载二进制分离：完成后左侧刷新走 `/api/session/:id/inspect`，不再用下载 URL 拉取文件，避免绕过支付锁。
+- 已完成一轮视觉美化参考整理，新增 `06_codex/DesignReferences.md`，参考 Word Copilot、Grammarly、Notion AI 和 Canva Magic Write 的文档优先/侧栏助手/轻入口模式。
+- 已美化网页外观：左侧文档区增加尺标、纸张边线、轻网格背景和更稳的文稿阴影；右侧侧栏改成更精致的深海蓝层级，首页说明文字收短。
 
 ## 当前采用的统一口径
 
@@ -64,6 +66,7 @@
 - 报价卡第一阶段已接入下载支付锁和 Stripe Checkout；权益扣减、2 小时修改窗口强制过期、24 小时下载保留清理仍未实现。
 - 外观主题由前端 `localStorage` 保存；默认跟随系统，不影响文档 patch、上传、下载和会话复用逻辑。
 - 左侧工作区只承担拖入、预览、选区和审阅定位，不作为完整长页面 WYSIWYG 编辑器。
+- 当前视觉方向是“文档画布 + 深海蓝 AI 侧栏”，不是营销 landing page。
 
 ## 尚未解决的问题
 

@@ -7,13 +7,13 @@
 
   <Id>ec8ae46c-3d48-43d1-8238-537de1e88468</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Whale Editor</ProviderName>
+  <ProviderName>Office Agent</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Whale Editor"/>
-  <Description DefaultValue="AI-powered Office document editing with DeepSeek prompt-cache optimization"/>
+  <DisplayName DefaultValue="Office Agent for DeepSeek"/>
+  <Description DefaultValue="AI-powered document editing with DeepSeek V4"/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-80.png"/>
-  <SupportUrl DefaultValue="https://github.com/Hans-han/whale-editor"/>
+  <SupportUrl DefaultValue="https://github.com/office-agent/office-agent-plugin"/>
 
   <Hosts>
     <Host Name="Document"/>

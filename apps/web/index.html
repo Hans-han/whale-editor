@@ -3,138 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title data-i18n="title">Whale Editor · DeepSeek-driven AI document editor</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><g fill='%231e5e8e' opacity='0.55'><circle cx='13' cy='4' r='0.85'/><circle cx='15.5' cy='2' r='0.65'/><circle cx='17.5' cy='4.5' r='0.75'/></g><path fill='%231e5e8e' d='M6.5 13 L2 9 L4.5 13 L2 17 Z'/><path fill='%231e5e8e' d='M6.5 13 C6.5 9 11 7.2 16 8 C20 8.5 22 10.8 22 13 C22 16.2 19 18 14 18.7 C9 19.3 6.5 17 6.5 13 Z'/><circle cx='18.2' cy='12' r='1' fill='%23ffffff'/></svg>">
+  <meta name="description" content="Office Agent 是一个本地文档工作台，用 DeepSeek 读取 DOCX/PPTX 结构、显示批注审阅并生成可下载修改稿。">
+  <meta name="color-scheme" content="light dark">
+  <title>Office Agent · DeepSeek 驱动的文档自动编辑</title>
+  <script>
+    (() => {
+      try {
+        const choice = localStorage.getItem('office-agent.theme') || 'system';
+        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const resolved = choice === 'dark' || (choice === 'system' && systemDark) ? 'dark' : 'light';
+        document.documentElement.dataset.themePreference = choice;
+        document.documentElement.dataset.themeResolved = resolved;
+      } catch {
+        document.documentElement.dataset.themePreference = 'system';
+        document.documentElement.dataset.themeResolved = 'light';
+      }
+    })();
+  </script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-  <!-- Skip link: keyboard users can jump past the topbar -->
-  <a href="#main-content" class="skip-link" data-i18n="a11y.skip">Skip to main content</a>
-
-  <!-- Reusable whale glyph. Custom design: spouting + V-flukes silhouette,
-       facing right. Shares the 'friendly cartoon whale' genre with similar
-       brands but distinguished by the 3-droplet spout and angled tail flukes.
-       Color via currentColor → adapts to light/dark theme automatically. -->
-  <svg width="0" height="0" style="position:absolute;width:0;height:0" aria-hidden="true" focusable="false">
-    <defs>
-      <symbol id="whale-glyph" viewBox="0 0 24 24">
-        <g fill="currentColor" opacity="0.55">
-          <circle cx="13" cy="4" r="0.85"/>
-          <circle cx="15.5" cy="2" r="0.65"/>
-          <circle cx="17.5" cy="4.5" r="0.75"/>
-        </g>
-        <path fill="currentColor" d="M6.5 13 L2 9 L4.5 13 L2 17 Z"/>
-        <path fill="currentColor" d="M6.5 13 C6.5 9 11 7.2 16 8 C20 8.5 22 10.8 22 13 C22 16.2 19 18 14 18.7 C9 19.3 6.5 17 6.5 13 Z"/>
-        <circle cx="18.2" cy="12" r="1" fill="var(--surface)"/>
-      </symbol>
-    </defs>
-  </svg>
-
   <header class="topbar">
-    <div class="brand" aria-label="Whale Editor">
-      <svg class="logo" aria-hidden="true" focusable="false"><use href="#whale-glyph"/></svg>
-      <span class="name">Whale Editor</span>
-      <span class="subtitle" data-i18n="brand.subtitle">DeepSeek-powered · cache-friendly</span>
+    <div class="brand" aria-label="Office Agent">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="name">Office Agent</span>
+      <span class="subtitle">DeepSeek 驱动 · 缓存命中优化</span>
     </div>
     <div class="topbar-right">
-      <span class="server-pill" data-i18n="server.pill" aria-hidden="true">Local workspace</span>
-      <button type="button" id="lang-toggle" class="lang-toggle" data-i18n-title="lang.title" data-i18n-aria="lang.title" title="Switch language" aria-label="Switch language">中</button>
+      <span class="server-pill">本地工作台</span>
+      <div class="theme-switch" id="theme-switch" role="group" aria-label="外观">
+        <button type="button" class="theme-button active" data-theme-choice="system" aria-pressed="true">跟随系统</button>
+        <button type="button" class="theme-button" data-theme-choice="light" aria-pressed="false">亮色</button>
+        <button type="button" class="theme-button" data-theme-choice="dark" aria-pressed="false">暗色</button>
+      </div>
       <button type="button" id="key-toggle" class="key-toggle" aria-expanded="false">
         <span class="key-icon" aria-hidden="true"></span>
-        <span class="key-label" data-i18n="key.label">API Key</span>
-        <span class="key-state" id="key-state" data-i18n="key.unset">Not set</span>
+        <span class="key-label">API Key</span>
+        <span class="key-state" id="key-state">未设置</span>
       </button>
     </div>
   </header>
 
   <section class="key-panel" id="key-panel" hidden>
     <div class="key-panel-inner">
-      <label for="key-input" class="key-help" data-i18n="key.help">
-        DeepSeek API key (stored only in this browser; never logged in plaintext on the server)
+      <label for="key-input" class="key-help">
+        DeepSeek API Key（仅本浏览器保存，不会上传服务器明文记录）
       </label>
       <div class="key-row">
         <input type="password" id="key-input" placeholder="sk-..." autocomplete="off" spellcheck="false">
-        <button type="button" id="key-save" class="btn-primary" data-i18n="key.save">Save</button>
-        <button type="button" id="key-clear" class="btn-secondary" data-i18n="key.clear">Clear</button>
+        <button type="button" id="key-save" class="btn-primary">保存</button>
+        <button type="button" id="key-clear" class="btn-secondary">清除</button>
       </div>
       <label class="key-remember">
         <input type="checkbox" id="key-remember" checked>
-        <span data-i18n="key.remember">Remember in this browser</span>
-        <span class="key-hint" data-i18n="key.hint">If unchecked, kept only for this session; if blank, the server's default key is used</span>
+        <span>在本浏览器记住</span>
+        <span class="key-hint">未勾选则仅本次会话有效；留空则使用服务器默认 key</span>
       </label>
     </div>
   </section>
 
-  <main class="workspace" id="main-content">
-    <section class="editor-pane" data-i18n-aria="editor.aria" aria-label="Document editor">
-      <div class="editor-toolbar">
-        <div class="toolbar-group">
-          <button type="button" id="tool-edit" class="tool-button active" data-editor-mode="edit" aria-pressed="true" aria-controls="document-page" data-i18n="tool.edit">Edit</button>
-          <button type="button" id="tool-comments" class="tool-button" data-editor-mode="comments" aria-pressed="false" aria-controls="document-page" data-i18n="tool.comment">Comments</button>
-          <button type="button" id="tool-review" class="tool-button" data-editor-mode="review" aria-pressed="false" aria-controls="document-page" data-i18n="tool.review">Review</button>
+  <div id="notice-region" class="notice-region" role="status" aria-live="polite" tabindex="-1" hidden></div>
+
+  <main class="workspace">
+    <section class="editor-pane" aria-label="文档编辑器">
+      <div class="editor-toolbar" role="toolbar" aria-label="文档视图工具栏">
+        <div class="toolbar-group" role="group" aria-label="视图">
+          <button type="button" id="tool-edit" class="tool-button active" data-editor-mode="edit" aria-pressed="true" aria-controls="document-page">编辑</button>
+          <button type="button" id="tool-comments" class="tool-button" data-editor-mode="comments" aria-pressed="false" aria-controls="document-page">批注</button>
+          <button type="button" id="tool-review" class="tool-button" data-editor-mode="review" aria-pressed="false" aria-controls="document-page">审阅</button>
         </div>
         <div class="toolbar-group align-right">
-          <span class="doc-state" id="doc-state" data-i18n="doc.state.waiting">Awaiting document</span>
-          <button type="button" class="compact-upload" id="compact-upload" data-i18n="compact.upload">Upload</button>
+          <span class="doc-state" id="doc-state">等待文档</span>
+          <button type="button" class="compact-upload" id="compact-upload">上传</button>
         </div>
       </div>
 
-      <div class="editor-stage" id="editor-stage">
-        <div class="empty-drop" id="empty-drop">
-          <svg class="empty-drop-icon" aria-hidden="true" focusable="false"><use href="#whale-glyph"/></svg>
-          <div class="empty-drop-title" data-i18n="empty.title">Drop a document here</div>
-          <div class="empty-drop-hint" data-i18n="empty.hint">Supports .docx / .pptx / .doc / .ppt</div>
+      <div class="editor-stage">
+        <article class="document-page" id="document-page" contenteditable="true" spellcheck="false" role="textbox" aria-label="文稿编辑和预览区" aria-multiline="true">
+          <div class="doc-kicker">Office Agent Workspace</div>
+          <h1>把文档拖到这里</h1>
+          <p>
+            支持 Word 或 PowerPoint。拖入后左侧显示预览，右侧会给出报价、修改窗口和执行进程。
+          </p>
+          <p>
+            这里只保留必要工作区，不再模拟一整页很长的 Word 页面。
+          </p>
+        </article>
+        <div class="selection-card" id="selection-card" hidden>
+          <div class="selection-card-title">已选中文稿内容</div>
+          <div class="selection-card-text" id="selection-text"></div>
+          <div class="selection-card-meta" id="selection-meta"></div>
+          <button type="button" class="doc-action" id="selection-use">带入右侧指令</button>
         </div>
-        <article class="document-page" id="document-page" contenteditable="true" spellcheck="false" hidden></article>
       </div>
 
+      <div class="status-strip">
+        <span>稳定前缀缓存</span>
+        <span>OOXML Patch</span>
+        <span>DOCX / PPTX</span>
+      </div>
     </section>
 
-    <aside class="ai-panel" data-i18n-aria="ai.aria" aria-label="AI conversation">
+    <aside class="ai-panel" aria-label="AI 对话框">
       <div class="ai-header">
         <div>
-          <div class="ai-title">
-            <svg class="ai-logo" aria-hidden="true" focusable="false"><use href="#whale-glyph"/></svg>
-            Whale Editor
-          </div>
-          <div class="ai-subtitle" data-i18n="ai.subtitle">Document assistant</div>
+          <div class="ai-title">Office Agent</div>
+          <div class="ai-subtitle">文档侧栏助手</div>
         </div>
-        <div class="ai-live-pill" id="ai-live-pill" data-i18n="ai.live.idle">Idle</div>
+        <div class="ai-live-pill" id="ai-live-pill">空闲</div>
       </div>
 
       <div class="chat-scroll" id="chat-scroll" aria-live="polite">
-        <div class="message assistant intro-message intro-greet">
-          <svg class="intro-mascot" aria-hidden="true" focusable="false"><use href="#whale-glyph"/></svg>
-          <h3 class="intro-headline" data-i18n="intro.headline">Hi — drop a document and I'll edit it for you.</h3>
-          <p class="message-body" data-i18n="intro.body">
-            Upload a document and a preview shows on the left. Tell me what to change and I'll apply edits step by step, mirroring visible changes back into the preview.
-          </p>
-          <div class="intro-cta-label" data-i18n="intro.cta">Try a sample prompt:</div>
-          <div class="preset-chips">
-            <button type="button" class="preset-chip" data-preset="rename">
-              <span data-i18n="preset.rename">Rename a term globally</span>
-            </button>
-            <button type="button" class="preset-chip" data-preset="style">
-              <span data-i18n="preset.style">Apply a formatting spec</span>
-            </button>
-            <button type="button" class="preset-chip" data-preset="translate">
-              <span data-i18n="preset.translate">Translate to English</span>
-            </button>
+        <div class="message assistant intro-message">
+          <div class="message-label">Office Agent</div>
+          <div class="message-body">
+            上传文档后，左侧会显示文稿预览。你可以直接输入要修改的内容，我会边执行边把可见变更同步到左侧。
           </div>
         </div>
 
-        <section class="message assistant progress-card" id="progress-card" hidden>
-          <div class="message-label" data-i18n="progress.label">Run progress</div>
-          <h2 class="progress-title">
+        <section class="message assistant progress-card" id="progress-card" aria-live="polite" hidden>
+          <div class="message-label">执行进程</div>
+          <h2 class="progress-title" role="status" aria-live="polite" aria-atomic="true">
             <span id="progress-status-icon" class="status-dot" aria-hidden="true"></span>
-            <span id="progress-status-text" data-i18n="progress.planning">Planning</span>
+            <span id="progress-status-text">规划中</span>
           </h2>
 
           <div class="whale-stage idle" id="whale-stage">
             <div class="activity-orbit" aria-hidden="true">
               <span></span>
             </div>
-            <div class="whale-caption" id="whale-caption" data-i18n="whale.processing">DeepSeek is thinking</div>
+            <div class="whale-caption" id="whale-caption">DeepSeek 正在处理</div>
           </div>
 
           <div class="rationale" id="rationale" hidden></div>
@@ -143,76 +142,102 @@
 
           <div class="metrics" id="metrics" hidden>
             <div class="metric">
-              <div class="metric-label" data-i18n="metric.cache">Cache hit</div>
+              <div class="metric-label">缓存命中率</div>
               <div class="metric-value" id="m-cache-ratio">—</div>
               <div class="metric-sub" id="m-cache-sub">—</div>
             </div>
             <div class="metric">
-              <div class="metric-label" data-i18n="metric.input">Input tokens</div>
+              <div class="metric-label">输入 token</div>
               <div class="metric-value" id="m-input">—</div>
             </div>
             <div class="metric">
-              <div class="metric-label" data-i18n="metric.output">Output tokens</div>
+              <div class="metric-label">输出 token</div>
               <div class="metric-value" id="m-output">—</div>
             </div>
             <div class="metric">
-              <div class="metric-label" data-i18n="metric.iter">Iterations</div>
+              <div class="metric-label">迭代次数</div>
               <div class="metric-value" id="m-iters">—</div>
             </div>
           </div>
 
           <div class="actions" id="final-actions" hidden>
-            <button id="btn-download" class="btn-primary" data-i18n="final.download">Download modified document</button>
-            <button id="btn-reedit" class="btn-secondary" hidden><span data-i18n="final.reedit">Edit again</span> <span id="reedit-status"></span></button>
-            <button id="btn-restart" class="btn-secondary" data-i18n="final.restart">Start over</button>
+            <button id="btn-download" class="btn-primary">下载修改后的文档</button>
+            <button id="btn-reedit" class="btn-secondary" hidden>继续修改 <span id="reedit-status"></span></button>
+            <button id="btn-restart" class="btn-secondary">重新开始</button>
           </div>
 
-          <div class="error-box" id="error-box" hidden></div>
+          <div class="error-box" id="error-box" role="alert" hidden></div>
         </section>
       </div>
 
-      <section class="input-card composer" id="input-card">
-        <label class="composer-label sr-only" for="intent-input" data-i18n="composer.label">Instruction</label>
+      <section class="input-card" id="input-card">
+        <div class="dropzone compact" id="dropzone" tabindex="0" role="button" aria-label="点击或拖入 .docx / .pptx 文件">
+          <input type="file" id="file-input" accept=".docx,.pptx,.doc,.ppt" hidden>
+          <div class="dropzone-empty" id="dropzone-empty">
+            <span class="upload-plus" aria-hidden="true">+</span>
+          </div>
+          <div class="dropzone-filled" id="dropzone-filled" hidden>
+            <div class="file-name" id="file-name"></div>
+            <div class="file-meta" id="file-meta"></div>
+            <button type="button" class="link-btn" id="file-clear">移除</button>
+          </div>
+        </div>
+
+        <section class="pricing-card" id="pricing-card" aria-label="文档修改报价" hidden>
+          <div class="pricing-head">
+            <div>
+              <div class="pricing-kicker">推荐套餐</div>
+              <div class="pricing-title" id="pricing-tier">标准修改</div>
+            </div>
+            <div class="pricing-price" id="pricing-price">¥19.9</div>
+          </div>
+          <div class="pricing-scope" id="pricing-scope">上传后自动估算文档复杂度</div>
+          <div class="pricing-grid">
+            <div>
+              <span>修改窗口</span>
+              <strong id="pricing-window">2 小时</strong>
+            </div>
+            <div>
+              <span>剩余轮次</span>
+              <strong id="pricing-rounds">8 轮</strong>
+            </div>
+            <div>
+              <span>下载保留</span>
+              <strong id="pricing-download">24 小时</strong>
+            </div>
+            <div>
+              <span>报价有效</span>
+              <strong id="pricing-countdown">10:00</strong>
+            </div>
+          </div>
+          <p class="pricing-note" id="pricing-note">缓存命中会降低底层成本，但不作为用户权益保证。</p>
+        </section>
+
+        <label class="composer-label" for="intent-input">指令</label>
         <textarea
           id="intent-input"
-          rows="3"
-          data-i18n-placeholder="composer.placeholder"
-          placeholder="e.g. Replace every 'AutoPaper' with 'PaperAuto' and change the header to 'Quarterly report 2025Q4'."
+          rows="4"
+          aria-label="输入要让 AI 执行的文档修改指令"
+          placeholder="例如：把所有 AutoPaper 改成 PaperAuto，页眉换成季度报告 2025Q4；或按参考材料里的格式说明重排。"
         ></textarea>
 
-        <!-- Bottom toolbar inside the composer: + on the left, send arrow on the right -->
-        <div class="composer-toolbar">
-          <div class="dropzone" id="dropzone" tabindex="0" role="button" data-i18n-aria="dropzone.aria" data-i18n-title="dropzone.title" aria-label="Click or drop a document" title="Click or drop DOCX / PPTX / DOC / PPT">
-            <input type="file" id="file-input" accept=".docx,.pptx,.doc,.ppt" hidden>
-            <span class="dropzone-empty" id="dropzone-empty" aria-hidden="true">
-              <svg viewBox="0 0 16 16" class="plus-icon" aria-hidden="true" focusable="false">
-                <path fill="currentColor" d="M7.25 2.5h1.5v4.75h4.75v1.5H8.75v4.75h-1.5V8.75H2.5v-1.5h4.75z"/>
-              </svg>
-            </span>
-            <span class="dropzone-filled" id="dropzone-filled" hidden>
-              <span class="file-chip-icon" aria-hidden="true">📄</span>
-              <span class="file-chip-name" id="file-name"></span>
-              <span class="file-chip-meta" id="file-meta"></span>
-              <button type="button" class="file-chip-remove" id="file-clear" data-i18n-aria="file.remove" aria-label="Remove document">×</button>
-            </span>
+        <div class="ref-section">
+          <div class="ref-header">
+            <span>参考材料 <span class="h2-hint">最多 6 份</span></span>
+            <button type="button" class="link-btn" id="ref-add">添加材料</button>
           </div>
+          <input type="file" id="ref-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.md,.markdown,.txt" multiple hidden>
+          <ul class="ref-list" id="ref-list"></ul>
+        </div>
 
-          <button id="btn-run" class="composer-send btn-primary" disabled data-i18n-aria="run.label" aria-label="Send and run">
-            <span class="btn-label">
-              <svg viewBox="0 0 16 16" class="send-arrow" aria-hidden="true" focusable="false">
-                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 8 L13 8 M9 4 L13 8 L9 12"/>
-              </svg>
-            </span>
-            <span class="btn-spinner" hidden>
-              <svg viewBox="0 0 16 16" class="spin-icon" aria-hidden="true" focusable="false">
-                <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="9 9" opacity="0.85"/>
-              </svg>
-            </span>
+        <div class="run-row">
+          <button id="btn-run" class="btn-primary" disabled>
+            <span class="btn-label">发送并执行</span>
+            <span class="btn-spinner" hidden>处理中</span>
           </button>
+          <span class="run-hint">会显示规划和每一步修改</span>
         </div>
       </section>
-
-      <p class="ai-footer" data-i18n="footer.disclaimer" aria-hidden="true">Generated by DeepSeek · review before sharing</p>
     </aside>
   </main>
 

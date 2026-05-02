@@ -41,6 +41,7 @@ export type AutoEvent =
   | {
       type: 'complete';
       success: boolean;
+      modifiedFile?: Buffer;
       modifiedFileBase64?: string;
       downloadUrl?: string;
       modifiedFilename?: string;
@@ -185,8 +186,7 @@ export async function runAuto(
     emit({
       type: 'complete',
       success: allSuccess,
-      modifiedFileBase64:
-        currentBuffer !== fileBuffer ? currentBuffer.toString('base64') : undefined,
+      modifiedFile: currentBuffer !== fileBuffer ? currentBuffer : undefined,
       totalUsage,
     });
   } catch (err) {

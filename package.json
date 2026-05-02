@@ -1,14 +1,14 @@
 {
-  "name": "whale-editor",
+  "name": "office-agent-plugin",
   "version": "0.1.0",
-  "description": "🐋 AI-powered Office document editor — DeepSeek-driven OOXML patching with stable-prefix prompt caching. Edits .docx / .pptx in place via structured patches; ingests PDF / DOC / DOCX / PPT / PPTX / MD / TXT as planning context.",
+  "description": "Office document editing agent with DeepSeek V4 integration",
   "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc && cp -R prompts dist/",
     "dev": "tsx watch src/api/server.ts",
-    "start": "node dist/src/api/server.js",
+    "start": "node dist/api/server.js",
     "dev:office": "tsx watch src/api/server.ts --office",
     "start:office": "node dist/src/api/server.js --office",
     "dev:office-https": "tsx watch src/api/server.ts --office --https",
@@ -52,15 +52,12 @@
     "node": ">=18.0.0"
   },
   "keywords": [
-    "whale-editor",
     "office",
     "docx",
     "pptx",
-    "ooxml",
     "agent",
     "llm",
-    "deepseek",
-    "prompt-cache"
+    "deepseek"
   ],
   "license": "MIT"
 }

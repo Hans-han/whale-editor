@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { config } from 'dotenv';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { createServer } from 'node:https';
 import { readFileSync, existsSync } from 'node:fs';
@@ -18,6 +18,7 @@ import {
   createSession,
   getSession,
   bumpSession,
+  replaceSessionDocument,
   statusOf,
   type DocumentSession,
 } from '../utils/sessionCache.js';
@@ -27,16 +28,73 @@ config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const PROJECT_ROOT = resolve(__dirname, '../../..');
+
+function findProjectRoot(): string {
+  const candidates = [
+    resolve(__dirname, '../..'),
+    resolve(__dirname, '../../..'),
+  ];
+  return candidates.find((candidate) => existsSync(join(candidate, 'apps/web'))) ?? candidates[0];
+}
+
+const PROJECT_ROOT = findProjectRoot();
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
-
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-
 const isOfficeMode = process.argv.includes('--office');
 const isHttpsMode = process.argv.includes('--https');
+
+app.disable('x-powered-by');
+
+const LOCAL_ORIGIN_PATTERN = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
+
+export function isAllowedCorsOrigin(origin: string | undefined): boolean {
+  if (!origin) return true;
+  if (LOCAL_ORIGIN_PATTERN.test(origin)) return true;
+
+  const configured = (process.env.CORS_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return configured.includes(origin);
+}
+
+app.use((req, res, next) => {
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'self'",
+      "script-src 'self' 'unsafe-inline' https://appsforoffice.microsoft.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      "connect-src 'self' http://localhost:* https://localhost:* http://127.0.0.1:* https://127.0.0.1:*",
+      "object-src 'none'",
+    ].join('; ')
+  );
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  if (isHttpsMode && process.env.ENABLE_HSTS === '1') {
+    res.setHeader('Strict-Transport-Security', 'max-age=15552000; includeSubDomains');
+  }
+  next();
+});
+
+app.use(cors({
+  origin(origin, callback) {
+    if (isAllowedCorsOrigin(origin)) {
+      callback(null, origin ?? false);
+      return;
+    }
+    callback(new Error('CORS origin not allowed'));
+  },
+}));
+app.use(express.json({ limit: '50mb' }));
 
 if (isOfficeMode) {
   const officeAddinPath = join(PROJECT_ROOT, 'apps/office-addin');
@@ -403,10 +461,10 @@ app.post('/api/agent/auto', autoUpload, async (req, res) => {
     });
 
     const writeAutoEvent = (event: AutoEvent): void => {
-      if (event.type === 'complete' && event.modifiedFileBase64) {
-        session.buffer = Buffer.from(event.modifiedFileBase64, 'base64');
-        session.fileType = fileType;
-        session.filename = filename;
+      if (event.type === 'complete' && (event.modifiedFile || event.modifiedFileBase64)) {
+        const modifiedFile =
+          event.modifiedFile ?? Buffer.from(event.modifiedFileBase64 ?? '', 'base64');
+        replaceSessionDocument(session.id, modifiedFile, fileType, filename);
         writeEvent({
           type: 'complete',
           success: event.success,
@@ -471,7 +529,13 @@ app.get('/api/health', async (_req, res) => {
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
 const HOST = process.env.HOST ?? '0.0.0.0';
 
-if (isHttpsMode) {
+function shouldStartServer(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(resolve(entry)).href;
+}
+
+if (shouldStartServer() && isHttpsMode) {
   const keyPath = join(PROJECT_ROOT, 'certs/localhost.key');
   const certPath = join(PROJECT_ROOT, 'certs/localhost.crt');
 
@@ -492,7 +556,7 @@ if (isHttpsMode) {
     logger.info(`HTTPS Server running at https://${HOST}:${PORT}`);
     logger.info('Office Add-in URL: https://localhost:3000/addin/taskpane.html');
   });
-} else {
+} else if (shouldStartServer()) {
   app.listen(PORT, HOST, () => {
     logger.info(`Server running at http://${HOST}:${PORT}`);
   });

@@ -81,10 +81,11 @@
 
 ## DeepSeek V4 成本口径
 
-- DeepSeek V4 Context Caching 默认开启。
-- 官方说明缓存是 best-effort，不保证 100% 命中。
-- 缓存不再使用后通常会在几小时到几天内自动清理。
-- 价格页显示 `deepseek-v4-flash` 和 `deepseek-v4-pro` 都区分 cache hit / cache miss 输入价格。
+- DeepSeek API Context Caching 默认开启，不需要为命中特性额外改代码。
+- 官方说明命中要求后续请求完整匹配已经持久化的 cache prefix unit。
+- 官方说明缓存是 best-effort，不保证 100% 命中；缓存不再使用后通常会在几小时到几天内自动清理。
+- 响应 usage 会返回 `prompt_cache_hit_tokens` 和 `prompt_cache_miss_tokens`，前端可据此展示命中率。
+- 2026-05-02 官方价格页显示 `deepseek-v4-flash` 和 `deepseek-v4-pro` 都区分 cache hit / cache miss 输入价格：`deepseek-v4-flash` 为 `$0.0028 / 1M cache hit input`、`$0.14 / 1M cache miss input`、`$0.28 / 1M output`；`deepseek-v4-pro` 当前折扣价为 `$0.003625 / 1M cache hit input`、`$0.435 / 1M cache miss input`、`$0.87 / 1M output`。
 
 ## 当前建议
 

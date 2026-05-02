@@ -387,6 +387,10 @@
       renderReviewView();
       return;
     }
+    if (editorMode === 'structure') {
+      renderStructureView();
+      return;
+    }
     renderEditView();
   }
 
@@ -549,6 +553,7 @@
       ${bodyHtml}
       ${actionsHtml ? `<div class="doc-actions">${actionsHtml}</div>` : ''}
     `;
+    documentPage.scrollTop = 0;
   }
 
   function renderInspectionState(title, kicker) {
@@ -696,6 +701,144 @@
       `${quickIntentButton(command, '填入审阅修复指令')}
        <button type="button" class="doc-action secondary" data-inspect-refresh="1">重新读取</button>`
     );
+  }
+
+  function renderStructureView() {
+    const source = currentInspectableFile();
+
+    if (!source) {
+      renderInspectShell(
+        '结构',
+        'OpenXML 工作流',
+        `<p>先拖入或上传 DOCX / PPTX。这里会显示文档怎样被解包成可定位的 OpenXML 结构，再由右侧指令生成最小 patch。</p>
+         <div class="pipeline-list compact">
+           ${renderPipelineStep(1, '解包文档', '读取 document.xml、slides、rels、styles 等包内文件。')}
+           ${renderPipelineStep(2, '生成 manifest', '把段落、表格、批注、幻灯片和形状映射成稳定 ID。')}
+           ${renderPipelineStep(3, '执行 patch', '只修改命中的 XML 节点，并在回写前验证包结构。')}
+         </div>`,
+        quickIntentButton('请先读取当前文档结构，生成 OpenXML 修改计划；只改必要节点，保持样式、编号、表格几何和幻灯片布局。', '填入结构化修改指令')
+      );
+      return;
+    }
+
+    if (inspectingDocument) {
+      renderInspectShell(
+        '结构',
+        'OpenXML 工作流',
+        `<p>正在读取 ${escapeHtml(source.name)} 的包结构、manifest ID、样式和关系文件。</p><div class="doc-skeleton"></div>`
+      );
+      return;
+    }
+
+    if (inspectError) {
+      renderInspectShell(
+        '结构',
+        'OpenXML 工作流',
+        `<p class="doc-warning">结构读取失败：${escapeHtml(inspectError)}</p>`,
+        '<button type="button" class="doc-action" data-inspect-refresh="1">重新读取</button>'
+      );
+      return;
+    }
+
+    if (!documentInfo?.summary) {
+      renderInspectShell(
+        '结构',
+        'OpenXML 工作流',
+        `<p>文档已载入，结构信息还在准备中。</p><div class="doc-skeleton"></div>`
+      );
+      return;
+    }
+
+    const isPptx = documentInfo.fileType === 'pptx';
+    const summary = documentInfo.summary || {};
+    const warnings = [...(documentInfo.errors || []), ...(documentInfo.warnings || [])];
+    const stats = documentStatsForPricing();
+    const plan = choosePricingPlan(stats);
+    const metrics = isPptx
+      ? [
+          ['文件类型', 'PPTX'],
+          ['幻灯片', summary.slides || 0],
+          ['形状', summary.shapes || 0],
+          ['母版/版式', `${summary.masters || 0}/${summary.layouts || 0}`],
+        ]
+      : [
+          ['文件类型', 'DOCX'],
+          ['段落', summary.paragraphs || 0],
+          ['表格', summary.tables || 0],
+          ['批注', summary.comments || 0],
+        ];
+
+    const metricHtml = metrics.map(([label, value]) => `
+      <div><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>
+    `).join('');
+
+    const ooxmlParts = isPptx
+      ? ['ppt/presentation.xml', 'ppt/slides/slide*.xml', 'ppt/slideLayouts/*.xml', 'ppt/notesSlides/*.xml', '_rels/*.rels']
+      : ['word/document.xml', 'word/styles.xml', 'word/numbering.xml', 'word/comments.xml', 'word/_rels/*.rels', '[Content_Types].xml'];
+
+    const cacheLines = [
+      ['稳定前缀', 'system prompt、patch schema、manifest 排序、工具说明保持固定。'],
+      ['动态后缀', '用户本轮指令、选区、批注处理结果、上轮验证错误放在后面。'],
+      ['同文档追改', '付款窗口内复用 session 和最新文档，避免重新构造冷启动上下文。'],
+      ['定价口径', `${plan.tier} ${plan.price}；缓存降低底层成本，但不承诺固定命中或固定 TTL。`],
+    ];
+
+    const riskLines = [
+      ['预览边界', '左侧是 manifest preview，不伪装成完整 Word / PowerPoint 渲染器。'],
+      ['最小修改', '优先替换现有 w:t / shape text，少做整段重建和版式移动。'],
+      ['可回溯', '每一步展示 targetId、operation 和结果，下载前仍由包验证兜底。'],
+      ['付费锁', '修改稿可以预览，真实下载必须通过 checkout 解锁。'],
+    ];
+
+    const issueHtml = warnings.length > 0
+      ? `<div class="doc-warning-list">${warnings.slice(0, 5).map((item) => `<div>${escapeHtml(item)}</div>`).join('')}</div>`
+      : '<p>包结构检查没有返回错误或警告。</p>';
+
+    renderInspectShell(
+      '结构',
+      'OpenXML 工作流',
+      `<p>已把 ${escapeHtml(documentInfo.filename || source.name)} 读成可定位的结构信息。右侧指令会匹配这些 ID，再生成可验证的 OpenXML patch。</p>
+       <div class="doc-mini-grid">${metricHtml}</div>
+
+       <h2>修改管线</h2>
+       <div class="pipeline-list">
+         ${renderPipelineStep(1, '解包 Office 文件', `把 ${isPptx ? 'PPTX' : 'DOCX'} 当作 zip 包读取，保留关系文件、样式和媒体引用。`)}
+         ${renderPipelineStep(2, '生成稳定 manifest', `抽取 ${isPptx ? 'slideId、shapeId、layout、master、notes' : 'paragraphId、tableCellId、comment anchor、styleId、listId'}，并保持固定排序。`)}
+         ${renderPipelineStep(3, '匹配用户输入', '把直接指令、批注、参考材料、模板说明归类为局部可执行任务。')}
+         ${renderPipelineStep(4, '写入结构化 patch', '生成 replace_text_in_paragraph、update_table_cell_text、replace_shape_text 等小范围操作。')}
+         ${renderPipelineStep(5, '验证并回写', '校验目标 ID、文件类型、包结构和关系文件，再生成可下载修改稿。')}
+       </div>
+
+       <h2>缓存命中设计</h2>
+       <div class="cache-plan">
+         ${cacheLines.map(([label, text]) => `<div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(text)}</span></div>`).join('')}
+       </div>
+
+       <h2>OpenXML 片段</h2>
+       <pre class="structure-code" aria-label="OpenXML 文件结构">${escapeHtml(ooxmlParts.join('\n'))}</pre>
+
+       <h2>UX 护栏</h2>
+       <div class="risk-grid">
+         ${riskLines.map(([label, text]) => `<div><strong>${escapeHtml(label)}</strong><span>${escapeHtml(text)}</span></div>`).join('')}
+       </div>
+
+       <h2>包检查</h2>
+       ${issueHtml}`,
+      `${quickIntentButton('请基于当前 manifest 生成 OpenXML 修改计划：先列出目标 ID 和操作类型，再执行最小 patch；保持样式、编号、表格几何、批注和幻灯片布局。', '按结构生成修改计划')}
+       <button type="button" class="doc-action secondary" data-inspect-refresh="1">重新读取</button>`
+    );
+  }
+
+  function renderPipelineStep(index, title, text) {
+    return `
+      <div class="pipeline-step">
+        <span class="pipeline-index">${index}</span>
+        <div>
+          <strong>${escapeHtml(title)}</strong>
+          <span>${escapeHtml(text)}</span>
+        </div>
+      </div>
+    `;
   }
 
   function quickIntentButton(intent, label) {

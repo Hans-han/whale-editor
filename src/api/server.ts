@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
+import Stripe from 'stripe';
 import { config } from 'dotenv';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
@@ -19,6 +20,8 @@ import {
   getSession,
   bumpSession,
   replaceSessionDocument,
+  markSessionCheckoutStarted,
+  markSessionPaid,
   statusOf,
   type DocumentSession,
 } from '../utils/sessionCache.js';
@@ -47,6 +50,95 @@ const isHttpsMode = process.argv.includes('--https');
 app.disable('x-powered-by');
 
 const LOCAL_ORIGIN_PATTERN = /^https?:\/\/(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/;
+const STRIPE_API_VERSION = Stripe.API_VERSION;
+const DEFAULT_CHECKOUT_AMOUNT_CENTS = 1990;
+const DEFAULT_CHECKOUT_CURRENCY = 'cny';
+
+let stripeClient: Stripe | null | undefined;
+
+function checkoutRequired(): boolean {
+  return process.env.CHECKOUT_REQUIRED !== '0';
+}
+
+function checkoutAmountCents(): number {
+  const parsed = Number.parseInt(process.env.CHECKOUT_AMOUNT_CENTS ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_CHECKOUT_AMOUNT_CENTS;
+}
+
+function checkoutCurrency(): string {
+  return (process.env.CHECKOUT_CURRENCY || DEFAULT_CHECKOUT_CURRENCY).trim().toLowerCase();
+}
+
+function stripe(): Stripe | null {
+  if (stripeClient !== undefined) return stripeClient;
+  const secretKey = (process.env.STRIPE_SECRET_KEY ?? '').trim();
+  if (!secretKey) {
+    stripeClient = null;
+    return stripeClient;
+  }
+  stripeClient = new Stripe(secretKey, { apiVersion: STRIPE_API_VERSION });
+  return stripeClient;
+}
+
+function appOrigin(req: express.Request): string {
+  const configured = (process.env.PUBLIC_APP_URL ?? '').trim();
+  if (configured) return configured.replace(/\/$/, '');
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+function handleStripeWebhook(req: express.Request, res: express.Response): void {
+  const stripeClient = stripe();
+  if (!stripeClient) {
+    res.status(503).json({ error: 'Stripe is not configured.' });
+    return;
+  }
+
+  const webhookSecret = (process.env.STRIPE_WEBHOOK_SECRET ?? '').trim();
+  if (!webhookSecret) {
+    logger.warn('Stripe webhook received without STRIPE_WEBHOOK_SECRET configured');
+    res.status(503).json({ error: 'Stripe webhook secret is not configured.' });
+    return;
+  }
+
+  const signature = req.header('stripe-signature');
+  if (!signature) {
+    res.status(400).json({ error: 'Missing Stripe signature.' });
+    return;
+  }
+
+  let event: Stripe.Event;
+  try {
+    event = stripeClient.webhooks.constructEvent(req.body, signature, webhookSecret);
+  } catch (err) {
+    logger.warn('Stripe webhook signature verification failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    res.status(400).json({ error: 'Invalid Stripe webhook signature.' });
+    return;
+  }
+
+  if (
+    event.type === 'checkout.session.completed' ||
+    event.type === 'checkout.session.async_payment_succeeded'
+  ) {
+    const checkoutSession = event.data.object as Stripe.Checkout.Session;
+    const documentSessionId =
+      checkoutSession.metadata?.documentSessionId ||
+      checkoutSession.client_reference_id ||
+      '';
+
+    if (documentSessionId && checkoutSession.payment_status === 'paid') {
+      const session = markSessionPaid(documentSessionId, checkoutSession.id);
+      logger.info('Document session unlocked by Stripe webhook', {
+        documentSessionId,
+        checkoutSessionId: checkoutSession.id,
+        found: Boolean(session),
+      });
+    }
+  }
+
+  res.json({ received: true });
+}
 
 export function isAllowedCorsOrigin(origin: string | undefined): boolean {
   if (!origin) return true;
@@ -94,6 +186,7 @@ app.use(cors({
     callback(new Error('CORS origin not allowed'));
   },
 }));
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 app.use(express.json({ limit: '50mb' }));
 
 if (isOfficeMode) {
@@ -182,6 +275,116 @@ function modifiedFilename(filename: string): string {
 
 function downloadUrlFor(sessionId: string): string {
   return `/api/session/${encodeURIComponent(sessionId)}/download`;
+}
+
+async function inspectSessionPayload(session: DocumentSession): Promise<Record<string, unknown>> {
+  if (session.fileType === 'docx') {
+    const manifest = await generateDocxManifest(session.buffer);
+    return {
+      fileType: session.fileType,
+      filename: session.filename,
+      preview: {
+        type: 'docx',
+        paragraphs: manifest.paragraphs.slice(0, 180).map((p) => ({
+          id: p.paragraphId,
+          text: p.textPreview,
+          styleId: p.styleId,
+          styleName: p.styleName,
+          headingLevel: p.headingLevel,
+          isListItem: p.isListItem,
+          numbering: p.numbering,
+          format: p.format,
+          commentIds: p.commentIds,
+        })),
+        tables: manifest.tables.slice(0, 30).map((table) => ({
+          id: table.tableId,
+          rows: table.rows.slice(0, 40).map((row) => ({
+            id: row.rowId,
+            cells: row.cells.slice(0, 12).map((cell) => ({
+              id: cell.cellId,
+              text: cell.textPreview,
+              columnSpan: cell.columnSpan,
+              verticalMerge: cell.verticalMerge,
+            })),
+          })),
+        })),
+      },
+      summary: {
+        paragraphs: manifest.paragraphs.length,
+        tables: manifest.tables.length,
+        headers: manifest.headers.length,
+        footers: manifest.footers.length,
+        comments: manifest.comments?.length ?? 0,
+        hasComments: manifest.hasComments,
+        hasFootnotes: manifest.hasFootnotes,
+        hasEndnotes: manifest.hasEndnotes,
+        hasNumbering: manifest.hasNumbering,
+        validationErrors: manifest.validation.errors.length,
+        validationWarnings: manifest.validation.warnings.length,
+      },
+      comments: (manifest.comments ?? []).map((comment) => ({
+        commentId: comment.commentId,
+        author: comment.author,
+        date: comment.date,
+        textPreview: comment.textPreview,
+        anchoredParagraphIds: comment.anchoredParagraphIds,
+      })),
+      reviewTargets: manifest.paragraphs
+        .filter((p) => p.commentIds && p.commentIds.length > 0)
+        .slice(0, 20)
+        .map((p) => ({
+          id: p.paragraphId,
+          textPreview: p.textPreview,
+          styleId: p.styleId,
+          commentIds: p.commentIds,
+        })),
+      warnings: manifest.validation.warnings,
+      errors: manifest.validation.errors,
+    };
+  }
+
+  const manifest = await generatePptxManifest(session.buffer);
+  return {
+    fileType: session.fileType,
+    filename: session.filename,
+    preview: {
+      type: 'pptx',
+      slides: manifest.slides.slice(0, 80).map((slide) => ({
+        id: slide.slideId,
+        index: slide.slideIndex,
+        title: slide.titleCandidate,
+        hasNotes: slide.hasNotes,
+        hasComments: slide.hasComments,
+        shapes: slide.shapes.slice(0, 30).map((shape) => ({
+          id: shape.shapeId,
+          type: shape.shapeType,
+          placeholderType: shape.placeholderType,
+          text: shape.textPreview,
+          position: shape.position,
+        })),
+      })),
+    },
+    summary: {
+      slides: manifest.slides.length,
+      shapes: manifest.slides.reduce((sum, slide) => sum + slide.shapes.length, 0),
+      layouts: manifest.layouts.length,
+      masters: manifest.masters.length,
+      comments: manifest.slides.filter((slide) => slide.hasComments).length,
+      speakerNotes: manifest.slides.filter((slide) => slide.hasNotes).length,
+      validationErrors: manifest.validation.errors.length,
+      validationWarnings: manifest.validation.warnings.length,
+    },
+    comments: [],
+    reviewTargets: manifest.slides.slice(0, 20).map((slide) => ({
+      id: slide.slideId,
+      textPreview: slide.titleCandidate ?? '',
+      shapeCount: slide.shapes.length,
+      hasNotes: slide.hasNotes,
+      hasComments: slide.hasComments,
+    })),
+    warnings: manifest.validation.warnings,
+    errors: manifest.validation.errors,
+  };
 }
 
 app.post('/api/document/inspect', upload.single('file'), async (req, res) => {
@@ -491,11 +694,149 @@ app.post('/api/agent/auto', autoUpload, async (req, res) => {
   }
 });
 
+app.get('/api/session/:id/inspect', async (req, res) => {
+  try {
+    const session = getSession(req.params.id);
+    if (!session) {
+      return res.status(404).json({ error: 'Session expired or unknown. Please re-run the edit.' });
+    }
+    return res.json(await inspectSessionPayload(session));
+  } catch (err) {
+    logger.error('Session inspect failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Internal server error' });
+  }
+});
+
+app.post('/api/checkout/session', async (req, res) => {
+  try {
+    const sessionId = (req.body.sessionId ?? '').toString().trim();
+    const session = getSession(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Session expired or unknown. Please re-run the edit.' });
+    }
+
+    if (!checkoutRequired() || session.paidAt) {
+      return res.json({
+        paid: true,
+        session: statusOf(session),
+        downloadUrl: downloadUrlFor(session.id),
+        modifiedFilename: modifiedFilename(session.filename),
+      });
+    }
+
+    const stripeClient = stripe();
+    if (!stripeClient) {
+      return res.status(503).json({
+        error: '支付尚未配置。请设置 STRIPE_SECRET_KEY 后再启用下载解锁。',
+        checkoutRequired: true,
+      });
+    }
+
+    const origin = appOrigin(req);
+    const checkoutSession = await stripeClient.checkout.sessions.create({
+      mode: 'payment',
+      client_reference_id: session.id,
+      metadata: {
+        documentSessionId: session.id,
+        filename: session.filename,
+      },
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: checkoutCurrency(),
+            unit_amount: checkoutAmountCents(),
+            product_data: {
+              name: 'Whale Editor 文档修改',
+              description: session.filename,
+            },
+          },
+        },
+      ],
+      success_url: `${origin}/?checkout_session_id={CHECKOUT_SESSION_ID}&document_session_id=${encodeURIComponent(session.id)}`,
+      cancel_url: `${origin}/?payment=cancelled&document_session_id=${encodeURIComponent(session.id)}`,
+    });
+
+    if (!checkoutSession.url) {
+      return res.status(502).json({ error: 'Stripe 未返回 Checkout URL。' });
+    }
+
+    markSessionCheckoutStarted(session.id, checkoutSession.id);
+    return res.json({
+      paid: false,
+      checkoutRequired: true,
+      checkoutSessionId: checkoutSession.id,
+      url: checkoutSession.url,
+      amount: checkoutAmountCents(),
+      currency: checkoutCurrency(),
+    });
+  } catch (err) {
+    logger.error('Checkout session creation failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Internal server error' });
+  }
+});
+
+app.get('/api/checkout/confirm', async (req, res) => {
+  try {
+    const checkoutSessionId = (req.query.checkout_session_id ?? '').toString().trim();
+    if (!checkoutSessionId) {
+      return res.status(400).json({ error: 'Missing checkout_session_id' });
+    }
+
+    const stripeClient = stripe();
+    if (!stripeClient) {
+      return res.status(503).json({ error: '支付尚未配置。' });
+    }
+
+    const checkoutSession = await stripeClient.checkout.sessions.retrieve(checkoutSessionId);
+    const documentSessionId =
+      checkoutSession.metadata?.documentSessionId ||
+      (req.query.document_session_id ?? '').toString().trim();
+    if (!documentSessionId) {
+      return res.status(400).json({ error: 'Checkout session missing document session metadata.' });
+    }
+
+    let session = getSession(documentSessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Document session expired. Please re-run the edit.' });
+    }
+
+    const paid = checkoutSession.payment_status === 'paid';
+    if (paid) {
+      session = markSessionPaid(documentSessionId, checkoutSession.id) ?? session;
+    }
+
+    return res.json({
+      paid,
+      status: checkoutSession.status,
+      paymentStatus: checkoutSession.payment_status,
+      session: statusOf(session),
+      downloadUrl: paid ? downloadUrlFor(session.id) : null,
+      modifiedFilename: modifiedFilename(session.filename),
+    });
+  } catch (err) {
+    logger.error('Checkout confirmation failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Internal server error' });
+  }
+});
+
 app.get('/api/session/:id/download', (req, res) => {
   try {
     const session = getSession(req.params.id);
     if (!session) {
       return res.status(404).json({ error: 'Session expired or unknown. Please re-run the edit.' });
+    }
+    if (checkoutRequired() && !session.paidAt) {
+      return res.status(402).json({
+        error: '请先完成付款后再下载修改稿。',
+        checkoutRequired: true,
+      });
     }
 
     const filename = modifiedFilename(session.filename);

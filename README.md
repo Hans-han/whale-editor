@@ -1,6 +1,6 @@
-# Office Agent Plugin
+# Whale Editor
 
-A TypeScript/Node.js Office document editing agent that integrates with DeepSeek V4. Supports `.docx` and `.pptx` files with structured patch operations, validation loops, and cache-friendly prompt building.
+A TypeScript/Node.js document editing workspace that integrates with DeepSeek V4. Supports `.docx` and `.pptx` files with structured patch operations, validation loops, checkout-locked downloads, and cache-friendly prompt building.
 
 ## Architecture
 
@@ -51,6 +51,10 @@ Edit `.env`:
 DEEPSEEK_API_KEY=sk-your-api-key-here
 DEEPSEEK_BASE_URL=https://api.deepseek.com/v1
 DEEPSEEK_MODEL=deepseek-v4
+PUBLIC_APP_URL=http://localhost:3000
+CHECKOUT_REQUIRED=1
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
 ```
 
 **Important**: Do NOT hardcode your API key in source code. Use environment variables.
@@ -84,10 +88,30 @@ curl -X POST http://localhost:3000/api/agent/run \
 | `DEEPSEEK_MODEL` | `deepseek-v4` | Model name |
 | `PORT` | `3000` | Server port |
 | `HOST` | `0.0.0.0` | Server host |
+| `PUBLIC_APP_URL` | request origin | Public web URL used for Stripe Checkout success/cancel redirects |
+| `CORS_ALLOWED_ORIGINS` | local origins only | Comma-separated list of additional allowed browser origins |
+| `CHECKOUT_REQUIRED` | `1` | Set to `0` only for local demos where downloads should not be payment locked |
+| `CHECKOUT_AMOUNT_CENTS` | `1990` | One-time Checkout price in minor currency units |
+| `CHECKOUT_CURRENCY` | `cny` | Stripe Checkout currency |
+| `STRIPE_SECRET_KEY` | empty | Stripe secret key used to create Checkout Sessions |
+| `STRIPE_WEBHOOK_SECRET` | empty | Stripe webhook signing secret for unlocking sessions from webhook events |
 | `MAX_ITERATIONS` | `4` | Max agent loop iterations |
 | `MAX_PATCH_OPERATIONS` | `20` | Max operations per patch |
 | `MAX_OUTPUT_TOKENS` | `4096` | Max LLM output tokens |
 | `LOG_LEVEL` | `info` | Logging level |
+
+### Checkout Download Lock
+
+The web app treats the modified DOCX/PPTX as locked until payment completes. The final file stays in the server-side session cache, and `/api/session/:id/download` returns HTTP `402` until that session is marked paid. The browser uses `/api/session/:id/inspect` for the left-side preview after editing, so preview refresh does not expose the binary file before checkout.
+
+Payment flow:
+
+1. Agent finishes editing and returns a session download URL.
+2. The UI shows `解锁下载` instead of direct download.
+3. `POST /api/checkout/session` creates a Stripe Checkout Session.
+4. Stripe redirects back to `PUBLIC_APP_URL` with `checkout_session_id`.
+5. `GET /api/checkout/confirm` or the Stripe webhook marks the document session paid.
+6. Only then does `/api/session/:id/download` return the modified document.
 
 ### Using Other Providers
 
@@ -159,7 +183,7 @@ All 39 tests cover:
 ## Project Structure
 
 ```
-office-agent-plugin/
+whale-editor/
 ├── src/
 │   ├── api/              # Express server
 │   ├── agent/            # Agent loop and prompt builder

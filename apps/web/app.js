@@ -94,6 +94,7 @@
   const KEY_STORAGE = 'office-agent.deepseek-key';
   const KEY_REMEMBER = 'office-agent.deepseek-key-remember';
   const THEME_STORAGE = 'office-agent.theme';
+  const CHECKOUT_PENDING_STORAGE = 'whale-editor.pending-checkout';
   const QUOTE_PREVIEW_MS = 10 * 60 * 1000;
 
   // ---------- Theme ----------
@@ -272,6 +273,68 @@
     noticeRegion.setAttribute('role', 'status');
   }
 
+  function updateDownloadButtonState() {
+    if (!btnDownload) return;
+    const locked = !!(activeSession && !activeSession.paid);
+    btnDownload.textContent = locked ? '解锁下载' : '下载修改后的文档';
+    btnDownload.dataset.locked = locked ? 'true' : 'false';
+  }
+
+  function safeJsonParse(value) {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  function checkoutPending() {
+    try {
+      return safeJsonParse(localStorage.getItem(CHECKOUT_PENDING_STORAGE) || '');
+    } catch {
+      return null;
+    }
+  }
+
+  function saveCheckoutPending() {
+    if (!activeSession?.id) return;
+    try {
+      localStorage.setItem(CHECKOUT_PENDING_STORAGE, JSON.stringify({
+        sessionId: activeSession.id,
+        filename: modifiedFilename || activeSession.filename || 'modified-document',
+        downloadUrl: modifiedDownloadUrl,
+        at: Date.now(),
+      }));
+    } catch {
+      // Checkout can still continue without local restore metadata.
+    }
+  }
+
+  function clearCheckoutPending() {
+    try {
+      localStorage.removeItem(CHECKOUT_PENDING_STORAGE);
+    } catch {
+      // Ignore storage failures.
+    }
+  }
+
+  async function readJsonResponse(resp) {
+    const text = await resp.text().catch(() => '');
+    if (!text) return {};
+    return safeJsonParse(text) || { error: text };
+  }
+
+  function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || 'modified-document';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   function setEditorMode(mode) {
     editorMode = mode;
     renderDocumentWorkspace();
@@ -378,7 +441,7 @@
     }
 
     documentPage.innerHTML = `
-      <div class="doc-kicker">Office Agent Workspace</div>
+      <div class="doc-kicker">Whale Editor Workspace</div>
       <h1>把文档拖到这里</h1>
       <p>支持 Word 或 PowerPoint。拖入后左侧显示预览，右侧会给出报价、修改窗口和执行进程。</p>
       <p>这里现在是紧凑工作区，不再拉成一整页很长的文稿框。</p>
@@ -1460,26 +1523,166 @@
   });
 
   btnDownload.addEventListener('click', () => {
-    if (modifiedDownloadUrl) {
-      const a = document.createElement('a');
-      a.href = modifiedDownloadUrl;
-      a.download = modifiedFilename || 'modified-document';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    downloadUnlockedDocument();
+  });
+
+  async function downloadUnlockedDocument() {
+    if (activeSession && !activeSession.paid) {
+      await startCheckout();
       return;
     }
 
-    if (!modifiedBlob) return;
-    const url = URL.createObjectURL(modifiedBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = modifiedFilename || 'modified-document';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  });
+    if (modifiedDownloadUrl) {
+      btnDownload.disabled = true;
+      try {
+        const resp = await fetch(modifiedDownloadUrl, { cache: 'no-store' });
+        if (resp.status === 402) {
+          activeSession = activeSession ? { ...activeSession, paid: false } : activeSession;
+          updateDownloadButtonState();
+          await startCheckout();
+          return;
+        }
+        if (!resp.ok) {
+          const data = await readJsonResponse(resp);
+          throw new Error(data.error || `HTTP ${resp.status}`);
+        }
+        const blob = await resp.blob();
+        triggerBlobDownload(blob, modifiedFilename || 'modified-document');
+        setNotice('已开始下载修改后的文档。', 'info');
+      } catch (err) {
+        setNotice(`下载失败：${err.message || String(err)}`, 'error', true);
+      } finally {
+        btnDownload.disabled = false;
+        updateDownloadButtonState();
+      }
+      return;
+    }
+
+    if (modifiedBlob) {
+      triggerBlobDownload(modifiedBlob, modifiedFilename || 'modified-document');
+      setNotice('已开始下载修改后的文档。', 'info');
+      return;
+    }
+
+    setNotice('还没有可下载的修改稿。', 'error', true);
+  }
+
+  async function startCheckout() {
+    if (!activeSession?.id) {
+      setNotice('请先完成一次文档修改，再解锁下载。', 'error', true);
+      return;
+    }
+
+    btnDownload.disabled = true;
+    btnDownload.textContent = '打开支付...';
+
+    try {
+      const resp = await fetch('/api/checkout/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: activeSession.id }),
+      });
+      const data = await readJsonResponse(resp);
+      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+      if (data.paid) {
+        activeSession = data.session || { ...activeSession, paid: true };
+        modifiedDownloadUrl = data.downloadUrl || modifiedDownloadUrl;
+        modifiedFilename = data.modifiedFilename || modifiedFilename;
+        startSessionCountdown();
+        updateDownloadButtonState();
+        await downloadUnlockedDocument();
+        return;
+      }
+
+      if (data.url) {
+        saveCheckoutPending();
+        window.location.assign(data.url);
+        return;
+      }
+
+      throw new Error('支付服务未返回可打开的结算页面。');
+    } catch (err) {
+      setNotice(`无法解锁下载：${err.message || String(err)}`, 'error', true);
+    } finally {
+      btnDownload.disabled = false;
+      updateDownloadButtonState();
+    }
+  }
+
+  function cleanCheckoutQuery() {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('checkout_session_id');
+    params.delete('document_session_id');
+    params.delete('payment');
+    const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}${window.location.hash}`;
+    window.history.replaceState({}, document.title, next);
+  }
+
+  async function confirmCheckoutFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const cancelled = params.get('payment') === 'cancelled';
+    const checkoutSessionId = params.get('checkout_session_id');
+    const pending = checkoutPending();
+
+    if (cancelled) {
+      clearCheckoutPending();
+      cleanCheckoutQuery();
+      setNotice('已取消付款，修改稿仍处于锁定状态。', 'info');
+      return;
+    }
+
+    if (!checkoutSessionId) return;
+
+    const documentSessionId = params.get('document_session_id') || pending?.sessionId || '';
+    progressCard.hidden = false;
+    finalActions.hidden = false;
+    btnDownload.hidden = false;
+    btnDownload.disabled = true;
+    btnDownload.textContent = '确认支付...';
+    setRunStatus('确认支付状态', 'running');
+    setDocState('正在解锁下载', true);
+
+    try {
+      const query = new URLSearchParams({ checkout_session_id: checkoutSessionId });
+      if (documentSessionId) query.set('document_session_id', documentSessionId);
+      const resp = await fetch(`/api/checkout/confirm?${query}`, { cache: 'no-store' });
+      const data = await readJsonResponse(resp);
+      if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+      if (!data.paid) {
+        activeSession = data.session || activeSession;
+        updateDownloadButtonState();
+        setRunStatus('支付尚未完成', 'warn');
+        setNotice('还没有收到付款完成状态，修改稿暂时不能下载。', 'error', true);
+        return;
+      }
+
+      activeSession = data.session || activeSession;
+      modifiedDownloadUrl = data.downloadUrl || pending?.downloadUrl || modifiedDownloadUrl;
+      modifiedFilename = data.modifiedFilename || pending?.filename || modifiedFilename || 'modified-document';
+      modifiedBlob = null;
+      followUpMode = canReuseSession();
+      startSessionCountdown();
+      btnReedit.hidden = !canReuseSession();
+      btnDownload.hidden = false;
+      updateDownloadButtonState();
+      editorMode = 'edit';
+      updateDocumentPageForResult(true, false);
+      await refreshModifiedPreviewFromSession();
+      setRunStatus('已解锁下载', 'done');
+      setNotice('支付完成，修改稿已解锁，可以下载。', 'info');
+      clearCheckoutPending();
+    } catch (err) {
+      setRunStatus('支付确认失败', 'error');
+      setNotice(`支付确认失败：${err.message || String(err)}`, 'error', true);
+    } finally {
+      btnDownload.disabled = false;
+      updateDownloadButtonState();
+      cleanCheckoutQuery();
+      updateRunEnabled();
+    }
+  }
 
   function clearSession() {
     activeSession = null;
@@ -1849,12 +2052,17 @@
       btnDownload.hidden = true;
     }
 
+    updateDownloadButtonState();
     finalActions.hidden = false;
     followUpMode = canReuseSession();
     btnReedit.hidden = !canReuseSession();
     if (ev.success) editorMode = 'edit';
     updateDocumentPageForResult(ev.success, !!ev.modifiedFileBase64);
-    if (ev.success && ev.downloadUrl) refreshModifiedPreviewFromDownloadUrl();
+    if (ev.success && activeSession?.id) {
+      refreshModifiedPreviewFromSession();
+    } else if (ev.success && ev.modifiedFileBase64) {
+      inspectCurrentDocument(true);
+    }
     updateRunEnabled();
     scrollChat();
   }
@@ -1869,22 +2077,47 @@
     scrollChat();
   }
 
-  async function refreshModifiedPreviewFromDownloadUrl() {
-    if (!modifiedDownloadUrl) return;
+  async function refreshModifiedPreviewFromSession() {
+    if (!activeSession?.id) return;
     setDocState('正在刷新修改稿预览', true);
+    const requestId = ++inspectRequestId;
+    inspectingDocument = true;
+    inspectError = '';
+    renderDocumentWorkspace();
     try {
-      const resp = await fetch(modifiedDownloadUrl, { cache: 'no-store' });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      modifiedBlob = await resp.blob();
-      clearDocumentInfo();
-      await inspectCurrentDocument(true);
+      const resp = await fetch(`/api/session/${encodeURIComponent(activeSession.id)}/inspect`, { cache: 'no-store' });
+      if (!resp.ok) {
+        const data = await readJsonResponse(resp);
+        throw new Error(data.error || `HTTP ${resp.status}`);
+      }
+      const data = await resp.json();
+      if (requestId !== inspectRequestId) return;
+      documentInfo = data;
+      documentInfoKey = `session|${activeSession.id}|${Date.now()}`;
+      inspectError = '';
+      previewUpdatedIds = new Set();
+      editorViewState = {
+        kind: 'result',
+        name: modifiedFilename || data.filename || activeSession.filename || 'document',
+        success: true,
+      };
+      editorMode = 'edit';
       setDocState('已刷新修改稿预览', true);
     } catch (err) {
+      if (requestId !== inspectRequestId) return;
       console.warn('Unable to refresh modified preview:', err);
       setDocState('已生成修改稿', true);
+      inspectError = err instanceof Error ? err.message : String(err);
+    } finally {
+      if (requestId === inspectRequestId) {
+        inspectingDocument = false;
+        renderDocumentWorkspace();
+        renderPricingCard();
+      }
     }
   }
 
   resetDocumentPage();
   setLiveState('空闲');
+  confirmCheckoutFromUrl();
 })();

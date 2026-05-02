@@ -10,6 +10,8 @@ export interface DocumentSession {
   createdAt: number;
   lastUsedAt: number;
   reuseCount: number;
+  paidAt?: number;
+  checkoutSessionId?: string;
 }
 
 const TTL_MS = 10 * 60 * 1000; // 10-minute idle window (sliding)
@@ -158,6 +160,23 @@ export function replaceSessionDocument(
   return s;
 }
 
+export function markSessionCheckoutStarted(id: string, checkoutSessionId: string): DocumentSession | null {
+  const s = sessions.get(id);
+  if (!s) return null;
+  s.checkoutSessionId = checkoutSessionId;
+  s.lastUsedAt = Date.now();
+  return s;
+}
+
+export function markSessionPaid(id: string, checkoutSessionId?: string): DocumentSession | null {
+  const s = sessions.get(id);
+  if (!s) return null;
+  s.paidAt = Date.now();
+  if (checkoutSessionId) s.checkoutSessionId = checkoutSessionId;
+  s.lastUsedAt = Date.now();
+  return s;
+}
+
 export interface SessionStatus {
   id: string;
   filename: string;
@@ -166,6 +185,7 @@ export interface SessionStatus {
   reuseRemaining: number;
   expiresInMs: number;
   ttlMs: number;
+  paid: boolean;
 }
 
 export function statusOf(s: DocumentSession): SessionStatus {
@@ -177,6 +197,7 @@ export function statusOf(s: DocumentSession): SessionStatus {
     reuseRemaining: Math.max(0, MAX_REUSE - s.reuseCount),
     expiresInMs: Math.max(0, TTL_MS - (Date.now() - s.lastUsedAt)),
     ttlMs: TTL_MS,
+    paid: Boolean(s.paidAt),
   };
 }
 

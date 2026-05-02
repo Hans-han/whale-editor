@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Office Agent 是一个本地文档工作台，用 DeepSeek 读取 DOCX/PPTX 结构、显示批注审阅并生成可下载修改稿。">
+  <meta name="description" content="Whale Editor 是一个本地文档工作台，用 DeepSeek 读取 DOCX/PPTX 结构、显示批注审阅并生成可下载修改稿。">
   <meta name="color-scheme" content="light dark">
-  <title>Office Agent · DeepSeek 驱动的文档自动编辑</title>
+  <title>Whale Editor · DeepSeek 驱动的文档自动编辑</title>
   <script>
     (() => {
       try {
@@ -25,9 +25,9 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand" aria-label="Office Agent">
+    <div class="brand" aria-label="Whale Editor">
       <span class="logo" aria-hidden="true"></span>
-      <span class="name">Office Agent</span>
+      <span class="name">Whale Editor</span>
       <span class="subtitle">DeepSeek 驱动 · 缓存命中优化</span>
     </div>
     <div class="topbar-right">
@@ -81,7 +81,7 @@
 
       <div class="editor-stage">
         <article class="document-page" id="document-page" contenteditable="true" spellcheck="false" role="textbox" aria-label="文稿编辑和预览区" aria-multiline="true">
-          <div class="doc-kicker">Office Agent Workspace</div>
+          <div class="doc-kicker">Whale Editor Workspace</div>
           <h1>把文档拖到这里</h1>
           <p>
             支持 Word 或 PowerPoint。拖入后左侧显示预览，右侧会给出报价、修改窗口和执行进程。
@@ -108,7 +108,7 @@
     <aside class="ai-panel" aria-label="AI 对话框">
       <div class="ai-header">
         <div>
-          <div class="ai-title">Office Agent</div>
+          <div class="ai-title">Whale Editor</div>
           <div class="ai-subtitle">文档侧栏助手</div>
         </div>
         <div class="ai-live-pill" id="ai-live-pill">空闲</div>
@@ -116,7 +116,7 @@
 
       <div class="chat-scroll" id="chat-scroll" aria-live="polite">
         <div class="message assistant intro-message">
-          <div class="message-label">Office Agent</div>
+          <div class="message-label">Whale Editor</div>
           <div class="message-body">
             上传文档后，左侧会显示文稿预览。你可以直接输入要修改的内容，我会边执行边把可见变更同步到左侧。
           </div>
@@ -161,7 +161,7 @@
           </div>
 
           <div class="actions" id="final-actions" hidden>
-            <button id="btn-download" class="btn-primary">下载修改后的文档</button>
+            <button id="btn-download" class="btn-primary">解锁下载</button>
             <button id="btn-reedit" class="btn-secondary" hidden>继续修改 <span id="reedit-status"></span></button>
             <button id="btn-restart" class="btn-secondary">重新开始</button>
           </div>

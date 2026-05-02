@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 import {
   createSession,
   getSession,
+  markSessionCheckoutStarted,
+  markSessionPaid,
   replaceSessionDocument,
+  statusOf,
   sessionCacheStats,
   clearSessionCacheForTests,
 } from '../src/utils/sessionCache.js';
@@ -62,5 +65,18 @@ describe('sessionCache limits', () => {
     assert.equal(getSession(second.id), null);
     assert.equal(getSession(third.id)?.buffer.length, 30);
     assert.equal(sessionCacheStats().totalBytes, 30);
+  });
+
+  it('tracks checkout and paid state without changing the document buffer', () => {
+    const session = createSession(Buffer.from('locked-doc'), 'docx', 'paid.docx');
+
+    assert.equal(statusOf(session).paid, false);
+    assert.equal(markSessionCheckoutStarted(session.id, 'cs_test_123')?.checkoutSessionId, 'cs_test_123');
+
+    const paid = markSessionPaid(session.id, 'cs_test_123');
+
+    assert.equal(paid?.checkoutSessionId, 'cs_test_123');
+    assert.equal(paid?.buffer.toString(), 'locked-doc');
+    assert.equal(statusOf(paid!).paid, true);
   });
 });

@@ -1,4 +1,4 @@
-# Office Agent 网站评分与功能规划
+# Whale Editor 网站评分与功能规划
 
 更新时间：2026-05-02
 
